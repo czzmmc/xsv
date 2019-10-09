@@ -35,7 +35,7 @@ serde        = { git = "https://github.com/mesalock-linux/serde-sgx"}
 serde_derive = { git = "https://github.com/mesalock-linux/serde-sgx"}
 streaming-stats ={git="https://github.com/GeminiCarrie/rust-stats",tag="sgx_v1.0.9"}
 sgx_tstd = { rev = "v1.0.9", git = "https://github.com/baidu/rust-sgx-sdk.git",optional = true}
-tabwriter ={git ="https://github.com/GeminiCarrie/tabwriter.git",tag="v1.1.0_sgx",features=["mesalock_sgx"]}
+#tabwriter ={git ="https://github.com/GeminiCarrie/tabwriter.git",tag="v1.1.0_sgx",features=["mesalock_sgx"]}
 [dev-dependencies]
 quickcheck = { version = "0.7", default-features = false }
 log = "0.4"

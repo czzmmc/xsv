@@ -21,7 +21,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate stats;
-extern crate tabwriter;
+// extern crate tabwriter;
 // extern crate threadpool;
 
 use std::borrow::ToOwned;
