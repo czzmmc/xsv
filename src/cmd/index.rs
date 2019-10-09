@@ -1,12 +1,17 @@
+#[cfg(not(feature = "mesalock_sgx"))]
 use std::fs;
+use std::prelude::v1::*;
+#[cfg(feature = "mesalock_sgx")]
+use std::untrusted::fs;
+
 use std::io;
 use std::path::{Path, PathBuf};
 
 use csv_index::RandomAccessSimple;
 
-use CliResult;
 use config::{Config, Delimiter};
 use util;
+use CliResult;
 
 static USAGE: &'static str = "
 Creates an index of the given CSV data, which can make other operations like
@@ -40,8 +45,8 @@ struct Args {
     flag_output: Option<String>,
     flag_delimiter: Option<Delimiter>,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
 
     let pidx = match args.flag_output {
@@ -49,8 +54,7 @@ pub fn run(argv: &[&str]) -> CliResult<()> {
         Some(p) => PathBuf::from(&p),
     };
 
-    let rconfig = Config::new(&Some(args.arg_input))
-                         .delimiter(args.flag_delimiter);
+    let rconfig = Config::new(&Some(args.arg_input), ioobj.clone()).delimiter(args.flag_delimiter);
     let mut rdr = rconfig.reader_file()?;
     let mut wtr = io::BufWriter::new(fs::File::create(&pidx)?);
     RandomAccessSimple::create(&mut rdr, &mut wtr)?;

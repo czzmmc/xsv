@@ -1,10 +1,11 @@
 use csv;
 use regex::bytes::RegexBuilder;
+use std::prelude::v1::*;
 
-use CliResult;
 use config::{Config, Delimiter};
 use select::SelectColumns;
 use util;
+use CliResult;
 
 static USAGE: &'static str = "
 Filters CSV data by whether the given regex matches a row.
@@ -46,19 +47,19 @@ struct Args {
     flag_invert_match: bool,
     flag_ignore_case: bool,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     let pattern = RegexBuilder::new(&*args.arg_regex)
         .case_insensitive(args.flag_ignore_case)
         .build()?;
-    let rconfig = Config::new(&args.arg_input)
+    let rconfig = Config::new(&args.arg_input, ioobj.clone())
         .delimiter(args.flag_delimiter)
         .no_headers(args.flag_no_headers)
         .select(args.flag_select);
 
     let mut rdr = rconfig.reader()?;
-    let mut wtr = Config::new(&args.flag_output).writer()?;
+    let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
 
     let headers = rdr.byte_headers()?.clone();
     let sel = rconfig.selection(&headers)?;

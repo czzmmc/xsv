@@ -1,10 +1,13 @@
+use std::boxed::Box;
 use std::io;
+use std::prelude::v1::*;
+use std::string::String;
+use std::vec;
+// use tabwriter::TabWriter;
 
-use tabwriter::TabWriter;
-
-use CliResult;
 use config::Delimiter;
 use util;
+use CliResult;
 
 static USAGE: &'static str = "
 Prints the fields of the first row in the CSV data.
@@ -38,38 +41,36 @@ struct Args {
     flag_intersect: bool,
     flag_delimiter: Option<Delimiter>,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let configs = util::many_configs(
-        &*args.arg_input, args.flag_delimiter, true)?;
+    let configs = util::many_configs(&*args.arg_input, args.flag_delimiter, true, ioobj.clone())?;
 
     let num_inputs = configs.len();
     let mut headers: Vec<Vec<u8>> = vec![];
     for conf in configs.into_iter() {
         let mut rdr = conf.reader()?;
         for header in rdr.byte_headers()?.iter() {
-            if !args.flag_intersect
-                || !headers.iter().any(|h| &**h == header)
-            {
+            if !args.flag_intersect || !headers.iter().any(|h| &**h == header) {
                 headers.push(header.to_vec());
             }
         }
     }
 
-    let mut wtr: Box<io::Write> =
-        if args.flag_just_names {
-            Box::new(io::stdout())
-        } else {
-            Box::new(TabWriter::new(io::stdout()))
-        };
-    for (i, header) in headers.into_iter().enumerate() {
-        if num_inputs == 1 && !args.flag_just_names {
-            write!(&mut wtr, "{}\t", i+1)?;
-        }
-        wtr.write_all(&header)?;
-        wtr.write_all(b"\n")?;
-    }
-    wtr.flush()?;
+    // let mut wtr: Box<io::Write> =
+    //     if args.flag_just_names {
+    //         Box::new(io::stdout())
+    //     } else {
+    //         // Box::new(TabWriter::new(io::stdout()))
+    //         Box::new(io::stdout())
+    //     };
+    // for (i, header) in headers.into_iter().enumerate() {
+    //     if num_inputs == 1 && !args.flag_just_names {
+    //         write!(&mut wtr, "{}\t", i+1)?;
+    //     }
+    //     wtr.write_all(&header)?;
+    //     wtr.write_all(b"\n")?;
+    // }
+    // wtr.flush()?;
     Ok(())
 }

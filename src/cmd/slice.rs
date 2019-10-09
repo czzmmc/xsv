@@ -1,10 +1,14 @@
+#[cfg(not(feature = "mesalock_sgx"))]
 use std::fs;
+use std::prelude::v1::*;
+#[cfg(feature = "mesalock_sgx")]
+use std::untrusted::fs;
 
-
-use CliResult;
 use config::{Config, Delimiter};
 use index::Indexed;
 use util;
+use CliResult;
+use std::io;
 
 static USAGE: &'static str = "
 Returns the rows in the range specified (starting at 0, half-open interval).
@@ -52,20 +56,20 @@ struct Args {
     flag_no_headers: bool,
     flag_delimiter: Option<Delimiter>,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    match args.rconfig().indexed()? {
-        None => args.no_index(),
-        Some(idxed) => args.with_index(idxed),
+    match args.rconfig(ioobj.clone()).indexed()? {
+        None => args.no_index(ioobj.clone()),
+        Some(idxed) => args.with_index(idxed, ioobj.clone()),
     }
 }
 
 impl Args {
-    fn no_index(&self) -> CliResult<()> {
-        let mut rdr = self.rconfig().reader()?;
-        let mut wtr = self.wconfig().writer()?;
-        self.rconfig().write_headers(&mut rdr, &mut wtr)?;
+    fn no_index<T: Ioredef + Clone>(&self, ioop: T) -> CliResult<()> {
+        let mut rdr = self.rconfig(ioop.clone()).reader()?;
+        let mut wtr = self.wconfig(ioop.clone()).writer()?;
+        self.rconfig(ioop.clone()).write_headers(&mut rdr, &mut wtr)?;
 
         let (start, end) = self.range()?;
         for r in rdr.byte_records().skip(start).take(end - start) {
@@ -74,12 +78,13 @@ impl Args {
         Ok(wtr.flush()?)
     }
 
-    fn with_index(
+    fn with_index<T: Ioredef + Clone,U:io::Seek + io::Read>(
         &self,
-        mut idx: Indexed<fs::File, fs::File>,
+        mut idx: Indexed<U,U>,
+        ioop: T,
     ) -> CliResult<()> {
-        let mut wtr = self.wconfig().writer()?;
-        self.rconfig().write_headers(&mut *idx, &mut wtr)?;
+        let mut wtr = self.wconfig(ioop.clone()).writer()?;
+        self.rconfig(ioop.clone()).write_headers(&mut *idx, &mut wtr)?;
 
         let (start, end) = self.range()?;
         if end - start == 0 {
@@ -95,16 +100,20 @@ impl Args {
 
     fn range(&self) -> Result<(usize, usize), String> {
         util::range(
-            self.flag_start, self.flag_end, self.flag_len, self.flag_index)
+            self.flag_start,
+            self.flag_end,
+            self.flag_len,
+            self.flag_index,
+        )
     }
 
-    fn rconfig(&self) -> Config {
-        Config::new(&self.arg_input)
+    fn rconfig<T: Ioredef + Clone>(&self, ioop: T) -> Config<T> {
+        Config::new(&self.arg_input, ioop)
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
     }
 
-    fn wconfig(&self) -> Config {
-        Config::new(&self.flag_output)
+    fn wconfig<T: Ioredef + Clone>(&self, ioop: T) -> Config<T> {
+        Config::new(&self.flag_output, ioop)
     }
 }

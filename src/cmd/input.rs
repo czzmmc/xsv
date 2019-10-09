@@ -1,8 +1,9 @@
 use csv;
+use std::prelude::v1::*;
 
-use CliResult;
 use config::{Config, Delimiter};
 use util;
+use CliResult;
 
 static USAGE: &'static str = "
 Read CSV data with special quoting rules.
@@ -37,14 +38,14 @@ struct Args {
     flag_escape: Option<Delimiter>,
     flag_no_quoting: bool,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let mut rconfig = Config::new(&args.arg_input)
+    let mut rconfig = Config::new(&args.arg_input, ioobj.clone())
         .delimiter(args.flag_delimiter)
         .no_headers(true)
         .quote(args.flag_quote.as_byte());
-    let wconfig = Config::new(&args.flag_output);
+    let wconfig = Config::new(&args.flag_output, ioobj.clone());
 
     if let Some(escape) = args.flag_escape {
         rconfig = rconfig.escape(Some(escape.as_byte())).double_quote(false);

@@ -1,9 +1,10 @@
-use csv;
-
-use CliResult;
 use config::{Config, Delimiter};
+use csv;
+use std::prelude::v1::*;
+use std::vec;
 use util;
-
+use CliResult;
+use Ioredef;
 static USAGE: &'static str = "
 Concatenates CSV data by column or by row.
 
@@ -49,29 +50,33 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
 }
 
-pub fn run(argv: &[&str]) -> CliResult<()> {
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
+
     if args.cmd_rows {
-        args.cat_rows()
+        args.cat_rows(ioobj.clone())
     } else if args.cmd_columns {
-        args.cat_columns()
+        args.cat_columns(ioobj.clone())
     } else {
         unreachable!();
     }
 }
 
 impl Args {
-    fn configs(&self) -> CliResult<Vec<Config>> {
-        util::many_configs(&*self.arg_input,
-                           self.flag_delimiter,
-                           self.flag_no_headers)
-             .map_err(From::from)
+    fn configs<T: Ioredef + Clone>(&self, ioobj: T) -> CliResult<Vec<Config<T>>> {
+        util::many_configs(
+            &*self.arg_input,
+            self.flag_delimiter,
+            self.flag_no_headers,
+            ioobj,
+        )
+        .map_err(From::from)
     }
 
-    fn cat_rows(&self) -> CliResult<()> {
+    fn cat_rows<T: Ioredef + Clone>(&self, ioobj: T) -> CliResult<()> {
         let mut row = csv::ByteRecord::new();
-        let mut wtr = Config::new(&self.flag_output).writer()?;
-        for (i, conf) in self.configs()?.into_iter().enumerate() {
+        let mut wtr = Config::new(&self.flag_output, ioobj.clone()).writer()?;
+        for (i, conf) in self.configs(ioobj.clone())?.into_iter().enumerate() {
             let mut rdr = conf.reader()?;
             if i == 0 {
                 conf.write_headers(&mut rdr, &mut wtr)?;
@@ -79,13 +84,14 @@ impl Args {
             while rdr.read_byte_record(&mut row)? {
                 wtr.write_byte_record(&row)?;
             }
-        }
+        }  
         wtr.flush().map_err(From::from)
     }
 
-    fn cat_columns(&self) -> CliResult<()> {
-        let mut wtr = Config::new(&self.flag_output).writer()?;
-        let mut rdrs = self.configs()?
+    fn cat_columns<T: Ioredef + Clone>(&self, ioobj: T) -> CliResult<()> {
+        let mut wtr = Config::new(&self.flag_output, ioobj.clone()).writer()?;
+        let mut rdrs = self
+            .configs(ioobj.clone())?
             .into_iter()
             .map(|conf| conf.no_headers(true).reader())
             .collect::<Result<Vec<_>, _>>()?;
@@ -97,9 +103,10 @@ impl Args {
             lengths.push(rdr.byte_headers()?.len());
         }
 
-        let mut iters = rdrs.iter_mut()
-                            .map(|rdr| rdr.byte_records())
-                            .collect::<Vec<_>>();
+        let mut iters = rdrs
+            .iter_mut()
+            .map(|rdr| rdr.byte_records())
+            .collect::<Vec<_>>();
         'OUTER: loop {
             let mut record = csv::ByteRecord::new();
             let mut num_done = 0;

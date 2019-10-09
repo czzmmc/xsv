@@ -1,6 +1,7 @@
-use CliResult;
 use config::{Config, Delimiter};
+use std::prelude::v1::*;
 use util;
+use CliResult;
 
 static USAGE: &'static str = "
 Reverses rows of CSV data.
@@ -31,10 +32,10 @@ struct Args {
     flag_no_headers: bool,
     flag_delimiter: Option<Delimiter>,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let rconfig = Config::new(&args.arg_input)
+    let rconfig = Config::new(&args.arg_input, ioobj.clone())
         .delimiter(args.flag_delimiter)
         .no_headers(args.flag_no_headers);
 
@@ -43,7 +44,7 @@ pub fn run(argv: &[&str]) -> CliResult<()> {
     let mut all = rdr.byte_records().collect::<Result<Vec<_>, _>>()?;
     all.reverse();
 
-    let mut wtr = Config::new(&args.flag_output).writer()?;
+    let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
     rconfig.write_headers(&mut rdr, &mut wtr)?;
     for r in all.into_iter() {
         wtr.write_byte_record(&r)?;

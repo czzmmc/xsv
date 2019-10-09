@@ -10,12 +10,9 @@ readme = "README.md"
 keywords = ["csv", "tsv", "slice", "command"]
 license = "Unlicense/MIT"
 autotests = false
-
-[[bin]]
+exclude = ["/.travis.yml", "/tests", "/ci"]
+[lib]
 name = "xsv"
-test = false
-bench = false
-doctest = false
 
 [[test]]
 name = "tests"
@@ -28,21 +25,22 @@ debug = true
 opt-level = 3
 
 [dependencies]
-byteorder = "1"
-crossbeam-channel = "0.2.4"
-csv = "1"
-csv-index = "0.1.5"
-docopt = "1"
-filetime = "0.1"
-num_cpus = "1.4"
-rand = "0.5"
-regex = "1"
-serde = "1"
-serde_derive = "1"
-streaming-stats = "0.2"
-tabwriter = "1"
-threadpool = "1.3"
-
+byteorder = { git = "https://github.com/mesalock-linux/byteorder-sgx" }
+csv = { git = "https://github.com/GeminiCarrie/rust-csv.git",tag="sgx_v1.0.0"}
+csv-index = {git = "https://github.com/GeminiCarrie/rust-csv.git",tag="sgx_v1.0.0"}
+docopt = {git= "https://github.com/GeminiCarrie/docopt.rs.git",tag ="sgx_v1.1.0"}
+rand         = { git = "https://github.com/mesalock-linux/rand-sgx", tag = "v0.6.5_sgx1.0.9" }
+regex        = { git = "https://github.com/mesalock-linux/regex-sgx" }
+serde        = { git = "https://github.com/mesalock-linux/serde-sgx"}
+serde_derive = { git = "https://github.com/mesalock-linux/serde-sgx"}
+streaming-stats ={git="https://github.com/GeminiCarrie/rust-stats",tag="sgx_v1.0.9"}
+sgx_tstd = { rev = "v1.0.9", git = "https://github.com/baidu/rust-sgx-sdk.git",optional = true}
+tabwriter ={git ="https://github.com/GeminiCarrie/tabwriter.git",tag="v1.1.0_sgx",features=["mesalock_sgx"]}
 [dev-dependencies]
 quickcheck = { version = "0.7", default-features = false }
 log = "0.4"
+filetime = "0.1"
+
+[features]
+default = ["mesalock_sgx"]
+mesalock_sgx = ["sgx_tstd"]

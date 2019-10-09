@@ -1,9 +1,10 @@
 use csv;
+use std::prelude::v1::*;
 
-use CliResult;
 use config::{Config, Delimiter};
 use select::SelectColumns;
 use util;
+use CliResult;
 
 static USAGE: &'static str = "
 Select columns from CSV data efficiently.
@@ -55,17 +56,17 @@ struct Args {
     flag_no_headers: bool,
     flag_delimiter: Option<Delimiter>,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
 
-    let rconfig = Config::new(&args.arg_input)
+    let rconfig = Config::new(&args.arg_input, ioobj.clone())
         .delimiter(args.flag_delimiter)
         .no_headers(args.flag_no_headers)
         .select(args.arg_selection);
 
     let mut rdr = rconfig.reader()?;
-    let mut wtr = Config::new(&args.flag_output).writer()?;
+    let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
 
     let headers = rdr.byte_headers()?.clone();
     let sel = rconfig.selection(&headers)?;

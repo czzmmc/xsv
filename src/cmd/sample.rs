@@ -1,14 +1,15 @@
 use std::io;
+use std::prelude::v1::*;
 
 use byteorder::{ByteOrder, LittleEndian};
-use csv;
-use rand::{self, Rng, SeedableRng};
-use rand::rngs::StdRng;
-
-use CliResult;
 use config::{Config, Delimiter};
+use csv;
 use index::Indexed;
+use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
+use rand::{thread_rng, Rng, SeedableRng};
 use util;
+use CliResult;
 
 static USAGE: &'static str = "
 Randomly samples CSV data uniformly using memory proportional to the size of
@@ -52,15 +53,15 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
     flag_seed: Option<usize>,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let rconfig = Config::new(&args.arg_input)
+    let rconfig = Config::new(&args.arg_input, ioobj.clone())
         .delimiter(args.flag_delimiter)
         .no_headers(args.flag_no_headers);
     let sample_size = args.arg_sample_size;
 
-    let mut wtr = Config::new(&args.flag_output).writer()?;
+    let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
     let sampled = match rconfig.indexed()? {
         Some(mut idx) => {
             if do_random_access(sample_size, idx.count()) {
@@ -75,6 +76,7 @@ pub fn run(argv: &[&str]) -> CliResult<()> {
         _ => {
             let mut rdr = rconfig.reader()?;
             rconfig.write_headers(&mut rdr, &mut wtr)?;
+
             sample_reservoir(&mut rdr, sample_size, args.flag_seed)?
         }
     };
@@ -88,12 +90,14 @@ fn sample_random_access<R, I>(
     idx: &mut Indexed<R, I>,
     sample_size: u64,
 ) -> CliResult<Vec<csv::ByteRecord>>
-where R: io::Read + io::Seek, I: io::Read + io::Seek
+where
+    R: io::Read + io::Seek,
+    I: io::Read + io::Seek,
 {
     let mut all_indices = (0..idx.count()).collect::<Vec<_>>();
-    let mut rng = ::rand::thread_rng();
-    rng.shuffle(&mut *all_indices);
-
+    let mut rng = thread_rng();
+    // rng.shuffle(&mut *all_indices);
+    all_indices.shuffle(&mut rng);
     let mut sampled = Vec::with_capacity(sample_size as usize);
     for i in all_indices.into_iter().take(sample_size as usize) {
         idx.seek(i)?;
@@ -105,7 +109,7 @@ where R: io::Read + io::Seek, I: io::Read + io::Seek
 fn sample_reservoir<R: io::Read>(
     rdr: &mut csv::Reader<R>,
     sample_size: u64,
-    seed: Option<usize>
+    seed: Option<usize>,
 ) -> CliResult<Vec<csv::ByteRecord>> {
     // The following algorithm has been adapted from:
     // https://en.wikipedia.org/wiki/Reservoir_sampling
@@ -117,9 +121,7 @@ fn sample_reservoir<R: io::Read>(
 
     // Seeding rng
     let mut rng: StdRng = match seed {
-        None => {
-            StdRng::from_rng(rand::thread_rng()).unwrap()
-        }
+        None => StdRng::from_rng(rand::thread_rng()).unwrap(),
         Some(seed) => {
             let mut buf = [0u8; 32];
             LittleEndian::write_u64(&mut buf, seed as u64);
@@ -129,7 +131,7 @@ fn sample_reservoir<R: io::Read>(
 
     // Now do the sampling.
     for (i, row) in records {
-        let random = rng.gen_range(0, i+1);
+        let random = rng.gen_range(0, i + 1);
         if random < sample_size as usize {
             reservoir[random] = row?;
         }

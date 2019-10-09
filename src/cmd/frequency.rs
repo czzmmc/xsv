@@ -1,16 +1,23 @@
+#[cfg(not(feature = "mesalock_sgx"))]
 use std::fs;
 use std::io;
+use std::prelude::v1::*;
+use std::str;
+use std::string::String;
+#[cfg(feature = "mesalock_sgx")]
+use std::untrusted::fs;
+use std::vec;
 
-use channel;
+// use channel;
 use csv;
-use stats::{Frequencies, merge_all};
-use threadpool::ThreadPool;
+use stats::{merge_all, Frequencies};
+// use threadpool::ThreadPool;
 
-use CliResult;
 use config::{Config, Delimiter};
 use index::Indexed;
 use select::{SelectColumns, Selection};
 use util;
+use CliResult;
 
 static USAGE: &'static str = "
 Compute a frequency table on CSV data.
@@ -72,23 +79,24 @@ struct Args {
     flag_no_headers: bool,
     flag_delimiter: Option<Delimiter>,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let rconfig = args.rconfig();
+    let rconfig = args.rconfig(ioobj.clone());
 
-    let mut wtr = Config::new(&args.flag_output).writer()?;
-    let (headers, tables) = match args.rconfig().indexed()? {
-        Some(ref mut idx) if args.njobs() > 1 => args.parallel_ftables(idx),
-        _ => args.sequential_ftables(),
-    }?;
+    let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
+    let (headers, tables) = args.sequential_ftables(ioobj.clone())?;
+    // let (headers, tables) = match args.rconfig().indexed()? {
+    //     Some(ref mut idx) if args.njobs() > 1 => args.parallel_ftables(idx),
+    //     _ => args.sequential_ftables(),
+    // }?;
 
     wtr.write_record(vec!["field", "value", "count"])?;
     let head_ftables = headers.into_iter().zip(tables.into_iter());
     for (i, (header, ftab)) in head_ftables.enumerate() {
         let mut header = header.to_vec();
         if rconfig.no_headers {
-            header = (i+1).to_string().into_bytes();
+            header = (i + 1).to_string().into_bytes();
         }
         for (value, count) in args.counts(&ftab).into_iter() {
             let count = count.to_string();
@@ -105,8 +113,8 @@ type FTable = Frequencies<Vec<u8>>;
 type FTables = Vec<Frequencies<Vec<u8>>>;
 
 impl Args {
-    fn rconfig(&self) -> Config {
-        Config::new(&self.arg_input)
+    fn rconfig<T: Ioredef + Clone>(&self, ioop: T) -> Config<T> {
+        Config::new(&self.arg_input, ioop.clone())
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
             .select(self.flag_select.clone())
@@ -121,54 +129,58 @@ impl Args {
         if self.flag_limit > 0 {
             counts = counts.into_iter().take(self.flag_limit).collect();
         }
-        counts.into_iter().map(|(bs, c)| {
-            if b"" == &**bs {
-                (b"(NULL)"[..].to_vec(), c)
-            } else {
-                (bs.clone(), c)
-            }
-        }).collect()
+        counts
+            .into_iter()
+            .map(|(bs, c)| {
+                if b"" == &**bs {
+                    (b"(NULL)"[..].to_vec(), c)
+                } else {
+                    (bs.clone(), c)
+                }
+            })
+            .collect()
     }
 
-    fn sequential_ftables(&self) -> CliResult<(Headers, FTables)> {
-        let mut rdr = self.rconfig().reader()?;
-        let (headers, sel) = self.sel_headers(&mut rdr)?;
+    fn sequential_ftables<T: Ioredef + Clone>(&self, ioop: T) -> CliResult<(Headers, FTables)> {
+        let mut rdr = self.rconfig(ioop.clone()).reader()?;
+        let (headers, sel) = self.sel_headers(&mut rdr, ioop.clone())?;
         Ok((headers, self.ftables(&sel, rdr.byte_records())?))
     }
 
-    fn parallel_ftables(&self, idx: &mut Indexed<fs::File, fs::File>)
-                       -> CliResult<(Headers, FTables)> {
-        let mut rdr = self.rconfig().reader()?;
-        let (headers, sel) = self.sel_headers(&mut rdr)?;
+    // fn parallel_ftables(&self, idx: &mut Indexed<fs::File, fs::File>)
+    //                    -> CliResult<(Headers, FTables)> {
+    //     let mut rdr = self.rconfig().reader()?;
+    //     let (headers, sel) = self.sel_headers(&mut rdr)?;
 
-        if idx.count() == 0 {
-            return Ok((headers, vec![]));
-        }
+    //     if idx.count() == 0 {
+    //         return Ok((headers, vec![]));
+    //     }
 
-        let chunk_size = util::chunk_size(idx.count() as usize, self.njobs());
-        let nchunks = util::num_of_chunks(idx.count() as usize, chunk_size);
+    //     let chunk_size = util::chunk_size(idx.count() as usize, self.njobs());
+    //     let nchunks = util::num_of_chunks(idx.count() as usize, chunk_size);
 
-        let pool = ThreadPool::new(self.njobs());
-        let (send, recv) = channel::bounded(0);
-        for i in 0..nchunks {
-            let (send, args, sel) = (send.clone(), self.clone(), sel.clone());
-            pool.execute(move || {
-                let mut idx = args.rconfig().indexed().unwrap().unwrap();
-                idx.seek((i * chunk_size) as u64).unwrap();
-                let it = idx.byte_records().take(chunk_size);
-                send.send(args.ftables(&sel, it).unwrap());
-            });
-        }
-        drop(send);
-        Ok((headers, merge_all(recv).unwrap()))
-    }
+    //     let pool = ThreadPool::new(self.njobs());
+    //     let (send, recv) = channel::bounded(0);
+    //     for i in 0..nchunks {
+    //         let (send, args, sel) = (send.clone(), self.clone(), sel.clone());
+    //         pool.execute(move || {
+    //             let mut idx = args.rconfig().indexed().unwrap().unwrap();
+    //             idx.seek((i * chunk_size) as u64).unwrap();
+    //             let it = idx.byte_records().take(chunk_size);
+    //             send.send(args.ftables(&sel, it).unwrap());
+    //         });
+    //     }
+    //     drop(send);
+    //     Ok((headers, merge_all(recv).unwrap()))
+    // }
 
     fn ftables<I>(&self, sel: &Selection, it: I) -> CliResult<FTables>
-            where I: Iterator<Item=csv::Result<csv::ByteRecord>> {
+    where
+        I: Iterator<Item = csv::Result<csv::ByteRecord>>,
+    {
         let null = &b""[..].to_vec();
         let nsel = sel.normal();
-        let mut tabs: Vec<_> =
-            (0..nsel.len()).map(|_| Frequencies::new()).collect();
+        let mut tabs: Vec<_> = (0..nsel.len()).map(|_| Frequencies::new()).collect();
         for row in it {
             let row = row?;
             for (i, field) in nsel.select(row.into_iter()).enumerate() {
@@ -185,16 +197,19 @@ impl Args {
         Ok(tabs)
     }
 
-    fn sel_headers<R: io::Read>(&self, rdr: &mut csv::Reader<R>)
-                  -> CliResult<(csv::ByteRecord, Selection)> {
+    fn sel_headers<R: io::Read, T: Ioredef + Clone>(
+        &self,
+        rdr: &mut csv::Reader<R>,
+        ioop: T,
+    ) -> CliResult<(csv::ByteRecord, Selection)> {
         let headers = rdr.byte_headers()?;
-        let sel = self.rconfig().selection(headers)?;
+        let sel = self.rconfig(ioop.clone()).selection(headers)?;
         Ok((sel.select(headers).map(|h| h.to_vec()).collect(), sel))
     }
 
-    fn njobs(&self) -> usize {
-        if self.flag_jobs == 0 { util::num_cpus() } else { self.flag_jobs }
-    }
+    // fn njobs(&self) -> usize {
+    //     if self.flag_jobs == 0 { util::num_cpus() } else { self.flag_jobs }
+    // }
 }
 
 fn trim(bs: ByteString) -> ByteString {

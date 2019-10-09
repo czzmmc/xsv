@@ -1,15 +1,25 @@
+#[cfg(not(feature = "mesalock_sgx"))]
 use std::fs;
+use std::prelude::v1::*;
+#[cfg(feature = "mesalock_sgx")]
+use std::untrusted::fs;
+
+#[cfg(feature = "mesalock_sgx")]
+use std::untrusted::path::PathEx;
+
+use std::boxed::Box;
 use std::io;
 use std::path::Path;
-
-use channel;
+use std::string::String;
+use std::{format, str};
+// use channel;
 use csv;
-use threadpool::ThreadPool;
+// use threadpool::ThreadPool;
 
-use CliResult;
 use config::{Config, Delimiter};
 use index::Indexed;
 use util::{self, FilenameTemplate};
+use CliResult;
 
 static USAGE: &'static str = "
 Splits the given CSV data into chunks.
@@ -56,33 +66,34 @@ struct Args {
     flag_no_headers: bool,
     flag_delimiter: Option<Delimiter>,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     if args.flag_size == 0 {
         return fail!("--size must be greater than 0.");
     }
-    fs::create_dir_all(&args.arg_outdir)?;
+    // fs::create_dir_all(&args.arg_outdir)?;
 
-    match args.rconfig().indexed()? {
-        Some(idx) => args.parallel_split(idx),
-        None => args.sequential_split(),
-    }
+    // match args.rconfig().indexed()? {
+    //     Some(idx) => args.parallel_split(idx),
+    //     None => args.sequential_split(),
+    // }
+    args.sequential_split(ioobj)
 }
 
 impl Args {
-    fn sequential_split(&self) -> CliResult<()> {
-        let rconfig = self.rconfig();
+    fn sequential_split<T: Ioredef + Clone>(&self, ioobj: T) -> CliResult<()> {
+        let rconfig = self.rconfig(ioobj.clone());
         let mut rdr = rconfig.reader()?;
         let headers = rdr.byte_headers()?.clone();
 
-        let mut wtr = self.new_writer(&headers, 0)?;
+        let mut wtr = self.new_writer(&headers, 0, ioobj.clone())?;
         let mut i = 0;
         let mut row = csv::ByteRecord::new();
         while rdr.read_byte_record(&mut row)? {
             if i > 0 && i % self.flag_size == 0 {
                 wtr.flush()?;
-                wtr = self.new_writer(&headers, i)?;
+                wtr = self.new_writer(&headers, i, ioobj.clone())?;
             }
             wtr.write_byte_record(&row)?;
             i += 1;
@@ -91,65 +102,66 @@ impl Args {
         Ok(())
     }
 
-    fn parallel_split(
-        &self,
-        idx: Indexed<fs::File, fs::File>,
-    ) -> CliResult<()> {
-        let nchunks = util::num_of_chunks(
-            idx.count() as usize, self.flag_size);
-        let pool = ThreadPool::new(self.njobs());
-        let (tx, rx) = channel::bounded::<()>(0);
-        for i in 0..nchunks {
-            let args = self.clone();
-            let tx = tx.clone();
-            pool.execute(move || {
-                let conf = args.rconfig();
-                let mut idx = conf.indexed().unwrap().unwrap();
-                let headers = idx.byte_headers().unwrap().clone();
-                let mut wtr = args
-                    .new_writer(&headers, i * args.flag_size)
-                    .unwrap();
+    // fn parallel_split(
+    //     &self,
+    //     idx: Indexed<fs::File, fs::File>,
+    // ) -> CliResult<()> {
+    //     let nchunks = util::num_of_chunks(
+    //         idx.count() as usize, self.flag_size);
+    //     let pool = ThreadPool::new(self.njobs());
+    //     let (tx, rx) = channel::bounded::<()>(0);
+    //     for i in 0..nchunks {
+    //         let args = self.clone();
+    //         let tx = tx.clone();
+    //         pool.execute(move || {
+    //             let conf = args.rconfig();
+    //             let mut idx = conf.indexed().unwrap().unwrap();
+    //             let headers = idx.byte_headers().unwrap().clone();
+    //             let mut wtr = args
+    //                 .new_writer(&headers, i * args.flag_size)
+    //                 .unwrap();
 
-                idx.seek((i * args.flag_size) as u64).unwrap();
-                for row in idx.byte_records().take(args.flag_size) {
-                    let row = row.unwrap();
-                    wtr.write_byte_record(&row).unwrap();
-                }
-                wtr.flush().unwrap();
-                drop(tx);
-            });
-        }
-        drop(tx);
-        rx.recv();
-        Ok(())
-    }
+    //             idx.seek((i * args.flag_size) as u64).unwrap();
+    //             for row in idx.byte_records().take(args.flag_size) {
+    //                 let row = row.unwrap();
+    //                 wtr.write_byte_record(&row).unwrap();
+    //             }
+    //             wtr.flush().unwrap();
+    //             drop(tx);
+    //         });
+    //     }
+    //     drop(tx);
+    //     rx.recv();
+    //     Ok(())
+    // }
 
-    fn new_writer(
+    fn new_writer<T: Ioredef + Clone>(
         &self,
         headers: &csv::ByteRecord,
         start: usize,
-    ) -> CliResult<csv::Writer<Box<io::Write+'static>>> {
+        ioobj: T,
+    ) -> CliResult<csv::Writer<Box<io::Write>>> {
         let dir = Path::new(&self.arg_outdir);
         let path = dir.join(self.flag_filename.filename(&format!("{}", start)));
         let spath = Some(path.display().to_string());
-        let mut wtr = Config::new(&spath).writer()?;
-        if !self.rconfig().no_headers {
+        let mut wtr = Config::new(&spath, ioobj.clone()).writer()?;
+        if !self.rconfig(ioobj.clone()).no_headers {
             wtr.write_record(headers)?;
         }
         Ok(wtr)
     }
 
-    fn rconfig(&self) -> Config {
-        Config::new(&self.arg_input)
+    fn rconfig<T: Ioredef + Clone>(&self, ioop: T) -> Config<T> {
+        Config::new(&self.arg_input, ioop.clone())
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
     }
 
-    fn njobs(&self) -> usize {
-        if self.flag_jobs == 0 {
-            util::num_cpus()
-        } else {
-            self.flag_jobs
-        }
-    }
+    // fn njobs(&self) -> usize {
+    //     if self.flag_jobs == 0 {
+    //         util::num_cpus()
+    //     } else {
+    //         self.flag_jobs
+    //     }
+    // }
 }

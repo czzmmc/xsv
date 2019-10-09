@@ -1,8 +1,9 @@
 use csv;
+use std::prelude::v1::*;
 
-use CliResult;
 use config::{Config, Delimiter};
 use util;
+use CliResult;
 
 static USAGE: &'static str = "
 Formats CSV data with a custom delimiter or CRLF line endings.
@@ -46,13 +47,14 @@ struct Args {
     flag_escape: Option<Delimiter>,
 }
 
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
 
-    let rconfig = Config::new(&args.arg_input)
+    let rconfig = Config::new(&args.arg_input, ioobj.clone())
         .delimiter(args.flag_delimiter)
         .no_headers(true);
-    let mut wconfig = Config::new(&args.flag_output)
+    let mut wconfig = Config::new(&args.flag_output, ioobj.clone())
         .delimiter(args.flag_out_delimiter)
         .crlf(args.flag_crlf);
 
@@ -68,7 +70,6 @@ pub fn run(argv: &[&str]) -> CliResult<()> {
         wconfig = wconfig.escape(Some(escape.as_byte())).double_quote(false);
     }
     wconfig = wconfig.quote(args.flag_quote.as_byte());
-
 
     let mut rdr = rconfig.reader()?;
     let mut wtr = wconfig.writer()?;

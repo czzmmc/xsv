@@ -1,11 +1,12 @@
-use std::borrow::Cow;
-
 use csv;
-use tabwriter::TabWriter;
+use std::borrow::Cow;
+use std::str;
+use std::string::String;
+// use tabwriter::TabWriter;
 
-use CliResult;
 use config::{Config, Delimiter};
 use util;
+use CliResult;
 
 static USAGE: &'static str = "
 Outputs CSV data as a table with columns in alignment.
@@ -45,27 +46,27 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
     flag_condense: Option<usize>,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let rconfig = Config::new(&args.arg_input)
+    let rconfig = Config::new(&args.arg_input, ioobj.clone())
         .delimiter(args.flag_delimiter)
         .no_headers(true);
-    let wconfig = Config::new(&args.flag_output)
-        .delimiter(Some(Delimiter(b'\t')));
+    let wconfig = Config::new(&args.flag_output, ioobj.clone()).delimiter(Some(Delimiter(b'\t')));
 
-    let tw = TabWriter::new(wconfig.io_writer()?)
-        .minwidth(args.flag_width)
-        .padding(args.flag_pad);
-    let mut wtr = wconfig.from_writer(tw);
-    let mut rdr = rconfig.reader()?;
+    // let tw = TabWriter::new(wconfig.io_writer()?)
+    //     .minwidth(args.flag_width)
+    //     .padding(args.flag_pad);
 
-    let mut record = csv::ByteRecord::new();
-    while rdr.read_byte_record(&mut record)? {
-        wtr.write_record(record.iter().map(|f| {
-            util::condense(Cow::Borrowed(f), args.flag_condense)
-        }))?;
-    }
-    wtr.flush()?;
+    // let mut wtr = wconfig.from_writer(tw);
+    // let mut rdr = rconfig.reader()?;
+
+    // let mut record = csv::ByteRecord::new();
+    // while rdr.read_byte_record(&mut record)? {
+    //     wtr.write_record(record.iter().map(|f| {
+    //         util::condense(Cow::Borrowed(f), args.flag_condense)
+    //     }))?;
+    // }
+    // wtr.flush()?;
     Ok(())
 }

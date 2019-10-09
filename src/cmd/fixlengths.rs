@@ -1,10 +1,11 @@
 use std::cmp;
+use std::prelude::v1::*;
 
 use csv;
 
-use CliResult;
 use config::{Config, Delimiter};
 use util;
+use CliResult;
 
 static USAGE: &'static str = "
 Transforms CSV data so that all records have the same length. The length is
@@ -40,10 +41,10 @@ struct Args {
     flag_output: Option<String>,
     flag_delimiter: Option<Delimiter>,
 }
-
-pub fn run(argv: &[&str]) -> CliResult<()> {
+use Ioredef;
+pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let config = Config::new(&args.arg_input)
+    let config = Config::new(&args.arg_input, ioobj.clone())
         .delimiter(args.flag_delimiter)
         .no_headers(true)
         .flexible(true);
@@ -56,8 +57,10 @@ pub fn run(argv: &[&str]) -> CliResult<()> {
         }
         None => {
             if config.is_std() {
-                return fail!("<stdin> cannot be used in this command. \
-                              Please specify a file path.");
+                return fail!(
+                    "<stdin> cannot be used in this command. \
+                     Please specify a file path."
+                );
             }
             let mut maxlen = 0usize;
             let mut rdr = config.reader()?;
@@ -78,7 +81,7 @@ pub fn run(argv: &[&str]) -> CliResult<()> {
     };
 
     let mut rdr = config.reader()?;
-    let mut wtr = Config::new(&args.flag_output).writer()?;
+    let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
     for r in rdr.byte_records() {
         let mut r = r?;
         if length >= r.len() {
