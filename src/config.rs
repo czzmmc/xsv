@@ -77,7 +77,7 @@ pub struct Config<T: Ioredef + Clone> {
     double_quote: bool,
     escape: Option<u8>,
     quoting: bool,
-    ioop: T,
+  pub  ioop: T,
 }
 
 impl<T: Ioredef + Clone> Config<T> {
@@ -108,7 +108,7 @@ impl<T: Ioredef + Clone> Config<T> {
             double_quote: true,
             escape: None,
             quoting: true,
-            ioop: ioop,
+           ioop: ioop,
         }
     }
 

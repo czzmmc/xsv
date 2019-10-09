@@ -5,6 +5,7 @@ use std::prelude::v1::*;
 use std::untrusted::fs;
 
 use std::io;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use csv_index::RandomAccessSimple;
@@ -56,7 +57,10 @@ pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 
     let rconfig = Config::new(&Some(args.arg_input), ioobj.clone()).delimiter(args.flag_delimiter);
     let mut rdr = rconfig.reader_file()?;
-    let mut wtr = io::BufWriter::new(fs::File::create(&pidx)?);
+    // let mut wtr = io::BufWriter::new(fs::File::create(&pidx)?);
+    let mut op = rconfig.ioop.to_owned();
+    let mut wtr = io::BufWriter::new(op.io_writer(Some(pidx))?);
     RandomAccessSimple::create(&mut rdr, &mut wtr)?;
+    wtr.flush()?;
     Ok(())
 }

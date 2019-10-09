@@ -28,6 +28,7 @@ use std::borrow::ToOwned;
 use std::env;
 use std::fmt;
 use std::io;
+use std::string::String;
 // use std::process;
 use docopt::{parse::Parser, Docopt};
 use std::format;
@@ -45,9 +46,11 @@ use std::vec;
 
 macro_rules! wout {
     ($($arg:tt)*) => ({
-        use std::io::Write;
-        (writeln!(&mut ::std::io::stdout(), $($arg)*)).unwrap();
-    });
+        use std::fmt::Write;
+        let mut errmsg = String::new();
+        (writeln!(&mut errmsg, $($arg)*)).unwrap();
+        errmsg
+    })
 }
 
 macro_rules! werr {
@@ -248,8 +251,12 @@ impl XsvMain {
             .map_err(|_| Error::from(ErrorKind::InvalidData))?;
 
         if args.flag_list {
-            wout!(concat!("Installed commands:", command_list!()));
-            return Err(Error::from(ErrorKind::InvalidData));
+            let errmsg = wout!(concat!("Installed commands:", command_list!()));
+            panic!("{}",errmsg);
+            return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        errmsg,
+                    ));
         }
         match args.arg_command {
             None => {
@@ -267,21 +274,40 @@ Please choose one of the following commands:",
                     ioobj,
                 ) {
                     Ok(()) => return Ok(()),
-                    Err(CliError::Flag(err)) => err.exit(),
+                    Err(CliError::Flag(err)) => {
+                        let errmsg = wout!("{}", err);
+                        return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        errmsg,
+                    ));
+                    },
                     Err(CliError::Csv(err)) => {
-                        werr!("{}", err);
-                        return Err(Error::from(ErrorKind::InvalidData));
+                        let errmsg = wout!("{}", err);
+                        return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        errmsg,
+                    ));
                     }
                     Err(CliError::Io(ref err)) if err.kind() == io::ErrorKind::BrokenPipe => {
-                        return Err(Error::from(ErrorKind::InvalidData));
+                        let errmsg = wout!("{}", err);
+                        return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        errmsg,
+                    ));
                     }
                     Err(CliError::Io(err)) => {
-                        werr!("{}", err);
-                        return Err(Error::from(ErrorKind::InvalidData));
+                        let errmsg = wout!("{}", err);
+                        return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        errmsg,
+                    ));
                     }
                     Err(CliError::Other(msg)) => {
-                        werr!("{}", msg);
-                        return Err(Error::from(ErrorKind::InvalidData));
+                       let errmsg = wout!("{}", msg);
+                        return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        errmsg,
+                    ));
                     }
                 };
             }
