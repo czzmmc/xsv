@@ -177,7 +177,7 @@ impl Ioredef for CommonXsv{
     }
     
 }
-trait SeekRead: io::Seek + io::Read {}
+pub trait SeekRead: io::Seek + io::Read {}
 impl<T: io::Seek + io::Read> SeekRead for T {}
 
 pub trait Ioredef {
