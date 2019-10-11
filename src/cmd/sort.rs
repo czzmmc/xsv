@@ -44,8 +44,8 @@ struct Args {
     flag_no_headers: bool,
     flag_delimiter: Option<Delimiter>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     let numeric = args.flag_numeric;
     let reverse = args.flag_reverse;

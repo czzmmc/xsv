@@ -41,8 +41,8 @@ struct Args {
     flag_intersect: bool,
     flag_delimiter: Option<Delimiter>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     let configs = util::many_configs(&*args.arg_input, args.flag_delimiter, true, ioobj.clone())?;
 

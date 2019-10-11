@@ -4,7 +4,8 @@ use std::prelude::v1::*;
 use std::vec;
 use util;
 use CliResult;
-use Ioredef;
+use IoRedef;
+
 static USAGE: &'static str = "
 Concatenates CSV data by column or by row.
 
@@ -50,7 +51,7 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
 }
 
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
 
     if args.cmd_rows {
@@ -63,7 +64,7 @@ pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 }
 
 impl Args {
-    fn configs<T: Ioredef + Clone>(&self, ioobj: T) -> CliResult<Vec<Config<T>>> {
+    fn configs<T: IoRedef + Clone>(&self, ioobj: T) -> CliResult<Vec<Config<T>>> {
         util::many_configs(
             &*self.arg_input,
             self.flag_delimiter,
@@ -73,7 +74,7 @@ impl Args {
         .map_err(From::from)
     }
 
-    fn cat_rows<T: Ioredef + Clone>(&self, ioobj: T) -> CliResult<()> {
+    fn cat_rows<T: IoRedef + Clone>(&self, ioobj: T) -> CliResult<()> {
         let mut row = csv::ByteRecord::new();
         let mut wtr = Config::new(&self.flag_output, ioobj.clone()).writer()?;
         for (i, conf) in self.configs(ioobj.clone())?.into_iter().enumerate() {
@@ -88,7 +89,7 @@ impl Args {
         wtr.flush().map_err(From::from)
     }
 
-    fn cat_columns<T: Ioredef + Clone>(&self, ioobj: T) -> CliResult<()> {
+    fn cat_columns<T: IoRedef + Clone>(&self, ioobj: T) -> CliResult<()> {
         let mut wtr = Config::new(&self.flag_output, ioobj.clone()).writer()?;
         let mut rdrs = self
             .configs(ioobj.clone())?

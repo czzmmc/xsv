@@ -65,14 +65,12 @@ macro_rules! fail {
         Err(::std::convert::From::from($e))
     };
 }
-
 macro_rules! command_list {
     () => {
         "
     cat         Concatenate by row or column
     count       Count records
     fixlengths  Makes all records have same length
-    flatten     Show one field per line
     fmt         Format CSV output (change field delimiter)
     frequency   Show frequency tables
     headers     Show header names
@@ -80,7 +78,6 @@ macro_rules! command_list {
     index       Create CSV index for faster access
     input       Read CSV data with special quoting rules
     join        Join CSV files
-    partition   Partition CSV data based on a column value
     sample      Randomly sample CSV data
     reverse     Reverse rows of CSV data
     search      Search CSV data with regexes
@@ -89,128 +86,37 @@ macro_rules! command_list {
     sort        Sort CSV data
     split       Split CSV data into many files
     stats       Compute basic statistics
-    table       Align CSV data into columns
 "
     };
 }
-use std::io::{Read,Write,IoSlice};
-#[derive(Clone)]
-pub struct CommonXsv
-{   reader:io::Cursor<Vec<u8>>,
-    writer:io::Cursor<Vec<u8>>,
-    path:Option<String>,
+// macro_rules! command_list {
+//     () => {
+//         "
+//     cat         Concatenate by row or column
+//     count       Count records
+//     fixlengths  Makes all records have same length
+//     flatten     Show one field per line
+//     fmt         Format CSV output (change field delimiter)
+//     frequency   Show frequency tables
+//     headers     Show header names
+//     help        Show this usage message.
+//     index       Create CSV index for faster access
+//     input       Read CSV data with special quoting rules
+//     join        Join CSV files
+//     partition   Partition CSV data based on a column value
+//     sample      Randomly sample CSV data
+//     reverse     Reverse rows of CSV data
+//     search      Search CSV data with regexes
+//     select      Select columns from CSV
+//     slice       Slice records from CSV
+//     sort        Sort CSV data
+//     split       Split CSV data into many files
+//     stats       Compute basic statistics
+//     table       Align CSV data into columns
+// "
+//     };
+// }
 
-}
-impl CommonXsv {
-    pub fn new()->CommonXsv{
-        CommonXsv{
-            reader:io::Cursor::new(vec![]),
-            writer:io::Cursor::new(vec![]),
-            path:None,
-        }
-    }
-}
-impl Write for CommonXsv {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-       self.writer.write(buf)
-    }
-
-    fn write_vectored(&mut self, bufs: &[IoSlice<'_>]) -> io::Result<usize> {
-        self.writer.write_vectored(bufs)
-    }
-
-    #[inline]
-    fn flush(&mut self) -> io::Result<()> { 
-        // let mm =String::from_utf8(self.writer.clone().into_inner());
-        match &self.path{
-            None=> panic!("not outpath"),
-            Some(p)=>{
-                let mut f =fs::File::create(p)?;
-                f.write_all(&self.writer.clone().into_inner())?;
-                f.flush()?;
-            }
-        }
-        Ok(())
-        }
-}
-impl Ioredef for CommonXsv{
-    fn io_reader(&mut self, path: Option<PathBuf>) -> io::Result<Box<io::Read>> {
-                    Ok(match path {
-            None => {
-                return Err(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "Invalid input file",
-                ))
-            }
-            Some(ref p) => match fs::File::open(p) {
-                Ok(mut x) => {
-                        let mut tmp = String::new();
-                        x.read_to_string(&mut tmp)?;
-                        self.reader = io::Cursor::new(tmp.as_bytes().to_owned());
-                        Box::new(self.reader.to_owned())},
-                Err(err) => {
-                    let msg = format!("failed to open {}", err);
-                    return Err(io::Error::new(io::ErrorKind::NotFound, msg));
-                }
-            },
-        })
-    }
-    fn io_writer(&mut self, path: Option<PathBuf>) -> io::Result<Box<io::Write>> {
-         Ok(Box::new(CommonXsv{
-            reader:io::Cursor::new(vec![]),
-            writer:io::Cursor::new(vec![]),
-            path: Some(path.unwrap().to_str().unwrap().to_string()),
-            }))
-            
-    }
-    fn read_from_file(&mut self, path: Option<PathBuf>) -> io::Result<Box<dyn SeekRead>> {
-        Ok( match path{
-            None => return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "Cannot use read file here",
-            )),
-            Some(p) =>Box::new(fs::File::open(p)?),
-        }
-            )
-            
-        
-    }
-    
-}
-pub trait SeekRead: io::Seek + io::Read {}
-impl<T: io::Seek + io::Read> SeekRead for T {}
-
-pub trait Ioredef {
-    fn io_reader(&mut self, path: Option<PathBuf>) -> io::Result<Box<io::Read>> {
-        Ok(match path {
-            None => {
-                return Err(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "Invalid input file",
-                ))
-            }
-            Some(ref p) => match fs::File::open(p) {
-                Ok(x) => Box::new(x),
-                Err(err) => {
-                    let msg = format!("failed to open {}", err);
-                    return Err(io::Error::new(io::ErrorKind::NotFound, msg));
-                }
-            },
-        })
-    }
-    fn io_writer(&mut self, path: Option<PathBuf>) -> io::Result<Box<io::Write>> {
-        Ok(match path {
-            None => Box::new(vec![]),
-            Some(ref p) => Box::new(fs::File::create(p)?),
-        })
-    }
-    fn read_from_file(&mut self, path: Option<PathBuf>) -> io::Result<Box<dyn SeekRead>> {
-        Ok(match path {
-            None => Box::new(io::Cursor::new(vec![])),
-            Some(ref p) => Box::new(fs::File::open(p)?),
-        })
-    }
-}
 mod cmd;
 mod config;
 mod index;
@@ -232,6 +138,7 @@ Options:
 Commands:",
     command_list!()
 );
+
 use serde::Deserialize;
 #[derive(Deserialize)]
 struct Args {
@@ -240,7 +147,7 @@ struct Args {
 }
 pub struct XsvMain;
 impl XsvMain {
-    pub fn new<T: Ioredef + Clone>(arg: Vec<&str>, ioobj: T) -> rResult<()> {
+    pub fn new<T: IoRedef + Clone>(arg: Vec<&str>, ioobj: T) -> rResult<()> {
         let args: Args = Docopt::new(USAGE)
             .and_then(|d| {
                 d.argv(arg.clone())
@@ -252,7 +159,6 @@ impl XsvMain {
 
         if args.flag_list {
             let errmsg = wout!(concat!("Installed commands:", command_list!()));
-            panic!("{}",errmsg);
             return Err(Error::new(
                         ErrorKind::InvalidData,
                         errmsg,
@@ -263,7 +169,7 @@ impl XsvMain {
                 werr!(concat!(
                     "xsv is a suite of CSV command line utilities.
 
-Please choose one of the following commands:",
+                    Please choose one of the following commands:",
                     command_list!()
                 ));
                 return Ok(());
@@ -322,7 +228,7 @@ enum Command {
     Cat,
     Count,
     FixLengths,
-    Flatten,
+    // Flatten,
     Fmt,
     Frequency,
     Headers,
@@ -330,7 +236,7 @@ enum Command {
     Index,
     Input,
     Join,
-    Partition,
+    // Partition,
     Reverse,
     Sample,
     Search,
@@ -339,14 +245,12 @@ enum Command {
     Sort,
     Split,
     Stats,
-    Table,
+    // Table,
 }
 
 impl Command {
-    fn run<T: Ioredef + Clone>(self, arg: Vec<String>, ioobj: T) -> CliResult<()> {
-        //let argv: Vec<_> = env::args().map(|v| v.to_owned()).collect();
+    fn run<T: IoRedef + Clone>(self, arg: Vec<String>, ioobj: T) -> CliResult<()> {
         let argv: Vec<_> = arg.iter().map(|s| &**s).collect();
-        //panic!("{:?}",argv);
         let argv = &*argv;
 
         if !argv[1].chars().all(char::is_lowercase) {
@@ -362,7 +266,7 @@ impl Command {
             Command::Cat => cmd::cat::run(argv, ioobj),
             Command::Count => cmd::count::run(argv, ioobj),
             Command::FixLengths => cmd::fixlengths::run(argv, ioobj),
-            Command::Flatten => cmd::flatten::run(argv, ioobj),
+            // Command::Flatten => cmd::flatten::run(argv, ioobj),
             Command::Fmt => cmd::fmt::run(argv, ioobj),
             Command::Frequency => cmd::frequency::run(argv, ioobj),
             Command::Headers => cmd::headers::run(argv, ioobj),
@@ -373,7 +277,7 @@ impl Command {
             Command::Index => cmd::index::run(argv, ioobj),
             Command::Input => cmd::input::run(argv, ioobj),
             Command::Join => cmd::join::run(argv, ioobj),
-            Command::Partition => cmd::partition::run(argv, ioobj),
+            // Command::Partition => cmd::partition::run(argv, ioobj),
             Command::Reverse => cmd::reverse::run(argv, ioobj),
             Command::Sample => cmd::sample::run(argv, ioobj),
             Command::Search => cmd::search::run(argv, ioobj),
@@ -382,7 +286,7 @@ impl Command {
             Command::Sort => cmd::sort::run(argv, ioobj),
             Command::Split => cmd::split::run(argv, ioobj),
             Command::Stats => cmd::stats::run(argv, ioobj),
-            Command::Table => cmd::table::run(argv, ioobj),
+            // Command::Table => cmd::table::run(argv, ioobj),
         }
     }
 }
@@ -449,3 +353,43 @@ impl From<regex::Error> for CliError {
         CliError::Other(format!("{:?}", err))
     }
 }
+
+
+pub trait SeekRead: io::Seek + io::Read {}
+impl<T: io::Seek + io::Read> SeekRead for T {}
+pub trait IoRedef {
+    fn io_reader(&mut self, path: Option<PathBuf>) -> io::Result<Box<io::Read>>;
+    fn io_writer(&self, path: Option<PathBuf>) -> io::Result<Box<io::Write>>;
+    fn read_from_file(&mut self, path: Option<PathBuf>) -> io::Result<Box<dyn SeekRead>>;
+}
+// pub trait IoRedef {
+//     fn io_reader(&mut self, path: Option<PathBuf>) -> io::Result<Box<io::Read>> {
+//         Ok(match path {
+//             None => {
+//                 return Err(io::Error::new(
+//                     io::ErrorKind::NotFound,
+//                     "Invalid input file",
+//                 ))
+//             }
+//             Some(ref p) => match fs::File::open(p) {
+//                 Ok(x) => Box::new(x),
+//                 Err(err) => {
+//                     let msg = format!("failed to open {}", err);
+//                     return Err(io::Error::new(io::ErrorKind::NotFound, msg));
+//                 }
+//             },
+//         })
+//     }
+//     fn io_writer(&self, path: Option<PathBuf>) -> io::Result<Box<io::Write>> {
+//         Ok(match path {
+//             None => Box::new(vec![]),
+//             Some(ref p) => Box::new(fs::File::create(p)?),
+//         })
+//     }
+//     fn read_from_file(&mut self, path: Option<PathBuf>) -> io::Result<Box<dyn SeekRead>> {
+//         Ok(match path {
+//             None => Box::new(io::Cursor::new(vec![])),
+//             Some(ref p) => Box::new(fs::File::open(p)?),
+//         })
+//     }
+// }

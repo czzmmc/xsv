@@ -15,13 +15,11 @@ use std::vec;
 use csv;
 use stats::{merge_all, Commute, MinMax, OnlineStats, Unsorted};
 // use threadpool::ThreadPool;
-
 use config::{Config, Delimiter};
 use index::Indexed;
 use select::{SelectColumns, Selection};
 use util;
 use CliResult;
-
 use self::FieldType::{TFloat, TInteger, TNull, TUnicode, TUnknown};
 
 static USAGE: &'static str = "
@@ -86,8 +84,8 @@ struct Args {
     flag_no_headers: bool,
     flag_delimiter: Option<Delimiter>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
 
     let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
@@ -123,7 +121,7 @@ pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 }
 
 impl Args {
-    fn sequential_stats<T: Ioredef + Clone>(
+    fn sequential_stats<T: IoRedef + Clone>(
         &self,
         ioobj: T,
     ) -> CliResult<(csv::ByteRecord, Vec<Stats>)> {
@@ -201,7 +199,7 @@ impl Args {
         Ok(stats)
     }
 
-    fn sel_headers<R: io::Read, T: Ioredef + Clone>(
+    fn sel_headers<R: io::Read, T: IoRedef + Clone>(
         &self,
         rdr: &mut csv::Reader<R>,
         ioobj: T,
@@ -211,7 +209,7 @@ impl Args {
         Ok((csv::ByteRecord::from_iter(sel.select(&headers)), sel))
     }
 
-    fn rconfig<T: Ioredef + Clone>(&self, ioobj: T) -> Config<T> {
+    fn rconfig<T: IoRedef + Clone>(&self, ioobj: T) -> Config<T> {
         Config::new(&self.arg_input, ioobj)
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)

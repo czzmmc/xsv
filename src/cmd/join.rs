@@ -19,6 +19,7 @@ use select::{SelectColumns, Selection};
 use util;
 use CliResult;
 use SeekRead;
+
 static USAGE: &'static str = "
 Joins two sets of CSV data on the specified columns.
 
@@ -94,10 +95,10 @@ struct Args {
     flag_nulls: bool,
     flag_delimiter: Option<Delimiter>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let mut state = args.new_io_state(ioobj.clone())?;
+    let mut state = args.new_io_state(ioobj)?;
     match (
         args.flag_left,
         args.flag_right,
@@ -276,7 +277,7 @@ impl<R: io::Read + io::Seek, W: io::Write> IoState<R, W> {
 }
 
 impl Args {
-    fn new_io_state<T: Ioredef + Clone>(
+    fn new_io_state<T: IoRedef + Clone>(
         &self,
         ioop: T,
     ) -> CliResult<IoState<Box<dyn SeekRead>, Box<io::Write>>> {
@@ -292,7 +293,7 @@ impl Args {
         let mut rdr2 = rconf2.reader_file()?;
         let (sel1, sel2) = self.get_selections(&rconf1, &mut rdr1, &rconf2, &mut rdr2)?;
         Ok(IoState {
-            wtr: Config::new(&self.flag_output, ioop.clone()).writer()?,
+            wtr: Config::new(&self.flag_output, ioop).writer()?,
             rdr1: rdr1,
             sel1: sel1,
             rdr2: rdr2,
@@ -303,7 +304,7 @@ impl Args {
         })
     }
 
-    fn get_selections<R: io::Read, T: Ioredef + Clone>(
+    fn get_selections<R: io::Read, T: IoRedef + Clone>(
         &self,
         rconf1: &Config<T>,
         rdr1: &mut csv::Reader<R>,

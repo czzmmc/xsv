@@ -9,6 +9,7 @@ use csv::{ByteRecord, Writer};
 use std::io::prelude::*;
 use util;
 use CliResult;
+
 static USAGE: &'static str = "
 Prints flattened records such that fields are labeled separated by a new line.
 This mode is particularly useful for viewing one record at a time. Each
@@ -50,8 +51,8 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
     flag_output: Option<String>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     let rconfig = Config::new(&args.arg_input, ioobj.clone())
         .delimiter(args.flag_delimiter)

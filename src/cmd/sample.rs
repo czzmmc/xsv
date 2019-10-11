@@ -11,6 +11,7 @@ use rand::{thread_rng, Rng, SeedableRng};
 use util;
 use CliResult;
 
+
 static USAGE: &'static str = "
 Randomly samples CSV data uniformly using memory proportional to the size of
 the sample.
@@ -53,8 +54,8 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
     flag_seed: Option<usize>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     let rconfig = Config::new(&args.arg_input, ioobj.clone())
         .delimiter(args.flag_delimiter)

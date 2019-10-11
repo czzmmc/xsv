@@ -17,7 +17,7 @@ use std::prelude::v1::*;
 use std::untrusted::fs;
 use util;
 use CliResult;
-use Ioredef;
+use IoRedef;
 use SeekRead;
 #[derive(Clone, Copy, Debug)]
 pub struct Delimiter(pub u8);
@@ -64,7 +64,7 @@ impl<'de> Deserialize<'de> for Delimiter {
 }
 
 #[derive(Debug)]
-pub struct Config<T: Ioredef + Clone> {
+pub struct Config<T: IoRedef + Clone> {
     path: Option<PathBuf>, // None implies <stdin>
     idx_path: Option<PathBuf>,
     select_columns: Option<SelectColumns>,
@@ -80,8 +80,8 @@ pub struct Config<T: Ioredef + Clone> {
   pub  ioop: T,
 }
 
-impl<T: Ioredef + Clone> Config<T> {
-    pub fn new(path: &Option<String>, mut ioop: T) -> Config<T> {
+impl<T: IoRedef + Clone> Config<T> {
+    pub fn new(path: &Option<String>, ioop: T) -> Config<T> {
         let (path, delim) = match *path {
             None => (None, b','),
             Some(ref s) if s.deref() == "-" => (None, b','),
@@ -108,7 +108,7 @@ impl<T: Ioredef + Clone> Config<T> {
             double_quote: true,
             escape: None,
             quoting: true,
-           ioop: ioop,
+            ioop: ioop,
         }
     }
 
@@ -317,8 +317,7 @@ impl<T: Ioredef + Clone> Config<T> {
         //     None => Box::new(io::stdout()),
         //     Some(ref p) => Box::new(fs::File::create(p)?),
         // })
-        let mut op = self.ioop.to_owned();
-        op.io_writer(self.path.clone())
+        self.ioop.io_writer(self.path.clone())
     }
 
     pub fn from_writer<W: io::Write>(&self, wtr: W) -> csv::Writer<W> {

@@ -56,8 +56,8 @@ struct Args {
     flag_no_headers: bool,
     flag_delimiter: Option<Delimiter>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     match args.rconfig(ioobj.clone()).indexed()? {
         None => args.no_index(ioobj.clone()),
@@ -66,7 +66,7 @@ pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 }
 
 impl Args {
-    fn no_index<T: Ioredef + Clone>(&self, ioop: T) -> CliResult<()> {
+    fn no_index<T: IoRedef + Clone>(&self, ioop: T) -> CliResult<()> {
         let mut rdr = self.rconfig(ioop.clone()).reader()?;
         let mut wtr = self.wconfig(ioop.clone()).writer()?;
         self.rconfig(ioop.clone()).write_headers(&mut rdr, &mut wtr)?;
@@ -78,7 +78,7 @@ impl Args {
         Ok(wtr.flush()?)
     }
 
-    fn with_index<T: Ioredef + Clone,U:io::Seek + io::Read>(
+    fn with_index<T: IoRedef + Clone,U:io::Seek + io::Read>(
         &self,
         mut idx: Indexed<U,U>,
         ioop: T,
@@ -107,13 +107,13 @@ impl Args {
         )
     }
 
-    fn rconfig<T: Ioredef + Clone>(&self, ioop: T) -> Config<T> {
+    fn rconfig<T: IoRedef + Clone>(&self, ioop: T) -> Config<T> {
         Config::new(&self.arg_input, ioop)
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
     }
 
-    fn wconfig<T: Ioredef + Clone>(&self, ioop: T) -> Config<T> {
+    fn wconfig<T: IoRedef + Clone>(&self, ioop: T) -> Config<T> {
         Config::new(&self.flag_output, ioop)
     }
 }

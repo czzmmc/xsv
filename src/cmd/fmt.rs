@@ -47,8 +47,8 @@ struct Args {
     flag_escape: Option<Delimiter>,
 }
 
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
 
     let rconfig = Config::new(&args.arg_input, ioobj.clone())

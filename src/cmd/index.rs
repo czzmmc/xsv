@@ -46,8 +46,8 @@ struct Args {
     flag_output: Option<String>,
     flag_delimiter: Option<Delimiter>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
 
     let pidx = match args.flag_output {
@@ -57,8 +57,7 @@ pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 
     let rconfig = Config::new(&Some(args.arg_input), ioobj.clone()).delimiter(args.flag_delimiter);
     let mut rdr = rconfig.reader_file()?;
-    // let mut wtr = io::BufWriter::new(fs::File::create(&pidx)?);
-    let mut op = rconfig.ioop.to_owned();
+    let mut op = rconfig.ioop;
     let mut wtr = io::BufWriter::new(op.io_writer(Some(pidx))?);
     RandomAccessSimple::create(&mut rdr, &mut wtr)?;
     wtr.flush()?;

@@ -58,8 +58,8 @@ struct Args {
     flag_no_headers: bool,
     flag_delimiter: Option<Delimiter>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     // fs::create_dir_all(&args.arg_outdir)?;
 
@@ -72,7 +72,7 @@ pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 
 impl Args {
     /// Configuration for our reader.
-    fn rconfig<T: Ioredef + Clone>(&self, ioobj: T) -> Config<T> {
+    fn rconfig<T: IoRedef + Clone>(&self, ioobj: T) -> Config<T> {
         Config::new(&self.arg_input, ioobj.clone())
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
@@ -80,7 +80,7 @@ impl Args {
     }
 
     /// Get the column to use as a key.
-    fn key_column<T: Ioredef + Clone>(
+    fn key_column<T: IoRedef + Clone>(
         &self,
         rconfig: &Config<T>,
         headers: &csv::ByteRecord,
@@ -94,7 +94,7 @@ impl Args {
     }
 
     /// A basic sequential partition.
-    fn sequential_partition<T: Ioredef + Clone>(&self, ioobj: T) -> CliResult<()> {
+    fn sequential_partition<T: IoRedef + Clone>(&self, ioobj: T) -> CliResult<()> {
         let rconfig = self.rconfig(ioobj.clone());
         let mut rdr = rconfig.reader()?;
         let headers = rdr.byte_headers()?.clone();
@@ -170,10 +170,10 @@ impl WriterGenerator {
     fn writer<P, T>(&mut self, path: P, key: &[u8], ioobj: T) -> io::Result<BoxedWriter>
     where
         P: AsRef<Path>,
-        T: Ioredef + Clone,
+        T: IoRedef + Clone,
     {
         let unique_value = self.unique_value(key);
-        self.template.writer(path.as_ref(), &unique_value, ioobj.clone())
+        self.template.writer(path.as_ref(), &unique_value, ioobj)
     }
 
     /// Generate a unique value for `key`, suitable for use in a

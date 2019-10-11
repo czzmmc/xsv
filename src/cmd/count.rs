@@ -30,8 +30,8 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
     flag_output: Option<String>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     let conf = Config::new(&args.arg_input, ioobj.clone())
         .delimiter(args.flag_delimiter)
@@ -52,6 +52,5 @@ pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
     wtr.write_record(vec![count.to_string()])?;
     wtr.flush()?;
-    // Ok({println!("{}", count)})
     Ok(())
 }

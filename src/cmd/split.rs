@@ -66,8 +66,8 @@ struct Args {
     flag_no_headers: bool,
     flag_delimiter: Option<Delimiter>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     if args.flag_size == 0 {
         return fail!("--size must be greater than 0.");
@@ -82,7 +82,7 @@ pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 }
 
 impl Args {
-    fn sequential_split<T: Ioredef + Clone>(&self, ioobj: T) -> CliResult<()> {
+    fn sequential_split<T: IoRedef + Clone>(&self, ioobj: T) -> CliResult<()> {
         let rconfig = self.rconfig(ioobj.clone());
         let mut rdr = rconfig.reader()?;
         let headers = rdr.byte_headers()?.clone();
@@ -135,7 +135,7 @@ impl Args {
     //     Ok(())
     // }
 
-    fn new_writer<T: Ioredef + Clone>(
+    fn new_writer<T: IoRedef + Clone>(
         &self,
         headers: &csv::ByteRecord,
         start: usize,
@@ -151,7 +151,7 @@ impl Args {
         Ok(wtr)
     }
 
-    fn rconfig<T: Ioredef + Clone>(&self, ioop: T) -> Config<T> {
+    fn rconfig<T: IoRedef + Clone>(&self, ioop: T) -> Config<T> {
         Config::new(&self.arg_input, ioop.clone())
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)

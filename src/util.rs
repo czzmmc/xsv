@@ -17,7 +17,7 @@ use docopt::Docopt;
 use config::{Config, Delimiter};
 use serde::de::{Deserialize, DeserializeOwned, Deserializer, Error};
 use CliResult;
-use Ioredef;
+use IoRedef;
 
 // pub fn num_cpus() -> usize {
 //     num_cpus::get()
@@ -51,7 +51,7 @@ where
         .map_err(From::from)
 }
 
-pub fn many_configs<T: Ioredef + Clone>(
+pub fn many_configs<T: IoRedef + Clone>(
     inps: &[String],
     delim: Option<Delimiter>,
     no_headers: bool,
@@ -73,7 +73,7 @@ pub fn many_configs<T: Ioredef + Clone>(
     Ok(confs)
 }
 
-pub fn errif_greater_one_stdin<T: Ioredef + Clone>(inps: &[Config<T>]) -> Result<(), String> {
+pub fn errif_greater_one_stdin<T: IoRedef + Clone>(inps: &[Config<T>]) -> Result<(), String> {
     let nstd = inps.iter().filter(|inp| inp.is_std()).count();
     if nstd > 1 {
         return Err("At most one <stdin> input is allowed.".to_owned());
@@ -219,7 +219,7 @@ impl FilenameTemplate {
     ) -> io::Result<csv::Writer<Box<io::Write>>>
     where
         P: AsRef<Path>,
-        T: Ioredef + Clone,
+        T: IoRedef + Clone,
     {
         let filename = self.filename(unique_value);
         let full_path = path.as_ref().join(filename);

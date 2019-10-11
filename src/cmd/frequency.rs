@@ -79,8 +79,8 @@ struct Args {
     flag_no_headers: bool,
     flag_delimiter: Option<Delimiter>,
 }
-use Ioredef;
-pub fn run<T: Ioredef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+use IoRedef;
+pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     let rconfig = args.rconfig(ioobj.clone());
 
@@ -113,7 +113,7 @@ type FTable = Frequencies<Vec<u8>>;
 type FTables = Vec<Frequencies<Vec<u8>>>;
 
 impl Args {
-    fn rconfig<T: Ioredef + Clone>(&self, ioop: T) -> Config<T> {
+    fn rconfig<T: IoRedef + Clone>(&self, ioop: T) -> Config<T> {
         Config::new(&self.arg_input, ioop.clone())
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
@@ -141,7 +141,7 @@ impl Args {
             .collect()
     }
 
-    fn sequential_ftables<T: Ioredef + Clone>(&self, ioop: T) -> CliResult<(Headers, FTables)> {
+    fn sequential_ftables<T: IoRedef + Clone>(&self, ioop: T) -> CliResult<(Headers, FTables)> {
         let mut rdr = self.rconfig(ioop.clone()).reader()?;
         let (headers, sel) = self.sel_headers(&mut rdr, ioop.clone())?;
         Ok((headers, self.ftables(&sel, rdr.byte_records())?))
@@ -197,7 +197,7 @@ impl Args {
         Ok(tabs)
     }
 
-    fn sel_headers<R: io::Read, T: Ioredef + Clone>(
+    fn sel_headers<R: io::Read, T: IoRedef + Clone>(
         &self,
         rdr: &mut csv::Reader<R>,
         ioop: T,
