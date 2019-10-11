@@ -212,13 +212,12 @@ impl<T: IoRedef + Clone> Config<T> {
     }
 
     pub fn reader_file(&self) -> io::Result<csv::Reader<Box<dyn SeekRead>>> {
-        let mut op = self.ioop.to_owned();
         match self.path {
             None => Err(io::Error::new(
                 io::ErrorKind::Other,
                 "Cannot use <stdin> here",
             )),
-            Some(ref p) =>op.read_from_file(Some((*p).clone())).map(|f| self.from_reader(f)),
+            Some(ref p) =>self.ioop.read_from_file(Some((*p).clone())).map(|f| self.from_reader(f)),
         }
     }
 
@@ -233,7 +232,7 @@ impl<T: IoRedef + Clone> Config<T> {
     // }
 
     pub fn index_files(&self) -> io::Result<Option<(csv::Reader<Box<dyn SeekRead>>, Box<dyn SeekRead>)>> {
-        let mut op = self.ioop.to_owned();
+      
         let (csv_file, idx_file) = match (&self.path, &self.idx_path) {
             (&None, &None) => return Ok(None),
             (&None, &Some(_)) => {
@@ -247,15 +246,15 @@ impl<T: IoRedef + Clone> Config<T> {
                 // We generally don't want to report an error here, since we're
                 // passively trying to find an index.
                 
-                let idx_file = match op.read_from_file(Some(util::idx_path(p))) {
+                let idx_file = match self.ioop.read_from_file(Some(util::idx_path(p))) {
                     // TODO: Maybe we should report an error if the file exists
                     // but is not readable.
                     Err(_) => return Ok(None),
                     Ok(f) => f,
                 };
-                (op.read_from_file(Some((*p).clone()))?, idx_file)
+                (self.ioop.read_from_file(Some((*p).clone()))?, idx_file)
             }
-            (&Some(ref p), &Some(ref ip)) => (op.read_from_file(Some((*p).clone()))?, op.read_from_file(Some((*ip).clone()))?),
+            (&Some(ref p), &Some(ref ip)) => (self.ioop.read_from_file(Some((*p).clone()))?, self.ioop.read_from_file(Some((*ip).clone()))?),
         };
         // If the CSV data was last modified after the index file was last
         // modified, then return an error and demand the user regenerate the
@@ -297,8 +296,8 @@ impl<T: IoRedef + Clone> Config<T> {
         //             }
         //         },
         //     })
-        let mut op = self.ioop.to_owned();
-        op.io_reader(self.path.clone())
+        // let mut op = self.ioop.to_owned();
+        self.ioop.io_reader(self.path.clone())
     }
 
     pub fn from_reader<R: Read>(&self, rdr: R) -> csv::Reader<R> {

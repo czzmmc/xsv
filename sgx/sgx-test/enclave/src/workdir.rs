@@ -66,7 +66,7 @@ impl Write for CommonXsv {
 }
 
 impl IoRedef for CommonXsv{
-    fn io_reader(&mut self, path: Option<PathBuf>) -> io::Result<Box<io::Read>> {
+    fn io_reader(&self, path: Option<PathBuf>) -> io::Result<Box<io::Read>> {
                     Ok(match path {
             None => {
                 return Err(io::Error::new(
@@ -78,8 +78,8 @@ impl IoRedef for CommonXsv{
                 Ok(mut x) => {
                         let mut tmp = String::new();
                         x.read_to_string(&mut tmp)?;
-                        self.reader = io::Cursor::new(tmp.as_bytes().to_owned());
-                        Box::new(self.reader.to_owned())},
+                        // self.reader = io::Cursor::new(tmp.as_bytes().to_owned());
+                        Box::new(io::Cursor::new(tmp.as_bytes().to_owned()))},
                 Err(err) => {
                     let msg = format!("failed to open {}", err);
                     return Err(io::Error::new(io::ErrorKind::NotFound, msg));
@@ -94,7 +94,7 @@ impl IoRedef for CommonXsv{
         })
             
     }
-    fn read_from_file(&mut self, path: Option<PathBuf>) -> io::Result<Box<dyn SeekRead>> {
+    fn read_from_file(&self, path: Option<PathBuf>) -> io::Result<Box<dyn SeekRead>> {
         Ok( match path{
             None => return Err(io::Error::new(
                 io::ErrorKind::Other,

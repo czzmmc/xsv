@@ -358,7 +358,7 @@ impl From<regex::Error> for CliError {
 pub trait SeekRead: io::Seek + io::Read {}
 impl<T: io::Seek + io::Read> SeekRead for T {}
 pub trait IoRedef {
-    fn io_reader(&mut self, path: Option<PathBuf>) -> io::Result<Box<io::Read>>;
+    fn io_reader(&self, path: Option<PathBuf>) -> io::Result<Box<io::Read>>;
     fn io_writer(&self, path: Option<PathBuf>) -> io::Result<Box<io::Write>>;
-    fn read_from_file(&mut self, path: Option<PathBuf>) -> io::Result<Box<dyn SeekRead>>;
+    fn read_from_file(&self, path: Option<PathBuf>) -> io::Result<Box<dyn SeekRead>>;
 }
