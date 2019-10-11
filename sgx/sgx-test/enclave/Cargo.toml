@@ -12,7 +12,7 @@ default = []
 
 [dependencies]
 xsv = { path = "../../../" }
-csv = {path="../../../../rust-csv"}
+csv = {git = "https://github.com/GeminiCarrie/rust-csv.git",tag="sgx_v1.0.0"}
 serde        = { git = "https://github.com/mesalock-linux/serde-sgx" }
 serde_derive = { git = "https://github.com/mesalock-linux/serde-sgx" }
 streaming-stats ={git="https://github.com/GeminiCarrie/rust-stats",tag="sgx_v1.0.9"}

@@ -362,34 +362,3 @@ pub trait IoRedef {
     fn io_writer(&self, path: Option<PathBuf>) -> io::Result<Box<io::Write>>;
     fn read_from_file(&mut self, path: Option<PathBuf>) -> io::Result<Box<dyn SeekRead>>;
 }
-// pub trait IoRedef {
-//     fn io_reader(&mut self, path: Option<PathBuf>) -> io::Result<Box<io::Read>> {
-//         Ok(match path {
-//             None => {
-//                 return Err(io::Error::new(
-//                     io::ErrorKind::NotFound,
-//                     "Invalid input file",
-//                 ))
-//             }
-//             Some(ref p) => match fs::File::open(p) {
-//                 Ok(x) => Box::new(x),
-//                 Err(err) => {
-//                     let msg = format!("failed to open {}", err);
-//                     return Err(io::Error::new(io::ErrorKind::NotFound, msg));
-//                 }
-//             },
-//         })
-//     }
-//     fn io_writer(&self, path: Option<PathBuf>) -> io::Result<Box<io::Write>> {
-//         Ok(match path {
-//             None => Box::new(vec![]),
-//             Some(ref p) => Box::new(fs::File::create(p)?),
-//         })
-//     }
-//     fn read_from_file(&mut self, path: Option<PathBuf>) -> io::Result<Box<dyn SeekRead>> {
-//         Ok(match path {
-//             None => Box::new(io::Cursor::new(vec![])),
-//             Some(ref p) => Box::new(fs::File::open(p)?),
-//         })
-//     }
-// }
