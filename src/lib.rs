@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 #![cfg_attr(all(feature = "mesalock_sgx", not(target_env = "sgx")), no_std)]
 #![cfg_attr(
     all(target_env = "sgx", target_vendor = "mesalock"),
@@ -236,7 +237,7 @@ enum Command {
     Index,
     Input,
     Join,
-    // Partition,
+    Partition,
     Reverse,
     Sample,
     Search,
@@ -277,7 +278,7 @@ impl Command {
             Command::Index => cmd::index::run(argv, ioobj),
             Command::Input => cmd::input::run(argv, ioobj),
             Command::Join => cmd::join::run(argv, ioobj),
-            // Command::Partition => cmd::partition::run(argv, ioobj),
+            Command::Partition => cmd::partition::run(argv, ioobj),
             Command::Reverse => cmd::reverse::run(argv, ioobj),
             Command::Sample => cmd::sample::run(argv, ioobj),
             Command::Search => cmd::search::run(argv, ioobj),

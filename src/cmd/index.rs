@@ -57,7 +57,7 @@ pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 
     let rconfig = Config::new(&Some(args.arg_input), ioobj.clone()).delimiter(args.flag_delimiter);
     let mut rdr = rconfig.reader_file()?;
-    let mut op = rconfig.ioop;
+    let op = rconfig.ioop;
     let mut wtr = io::BufWriter::new(op.io_writer(Some(pidx))?);
     RandomAccessSimple::create(&mut rdr, &mut wtr)?;
     wtr.flush()?;

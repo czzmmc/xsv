@@ -223,7 +223,7 @@ impl FilenameTemplate {
     {
         let filename = self.filename(unique_value);
         let full_path = path.as_ref().join(filename);
-        if let Some(parent) = full_path.parent() {
+        if let Some(_parent) = full_path.parent() {
             // We may be called concurrently, especially by parallel `xsv
             // split`, so be careful to avoid the `create_dir_all` race
             // condition.

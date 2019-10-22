@@ -10,7 +10,18 @@ readme = "README.md"
 keywords = ["csv", "tsv", "slice", "command"]
 license = "Unlicense/MIT"
 autotests = false
-exclude = ["/.travis.yml", "/tests", "/ci"]
+
+include = [
+    "LICENSE-MIT",
+    "UNLICENSE",
+    "COPYING",
+    "BENCHMARKS.md",
+    "Readme.md",
+    "Cargo.toml",
+    "src/*",
+    "tests/*.rs",
+]
+
 [lib]
 name = "xsv"
 

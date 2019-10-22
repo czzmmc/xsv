@@ -1,7 +1,7 @@
 pub mod cat;
 pub mod count;
 pub mod fixlengths;
-pub mod flatten;
+// pub mod flatten;
 pub mod fmt;
 pub mod frequency;
 pub mod headers;
@@ -17,4 +17,4 @@ pub mod slice;
 pub mod sort;
 pub mod split;
 pub mod stats;
-pub mod table;
+// pub mod table;

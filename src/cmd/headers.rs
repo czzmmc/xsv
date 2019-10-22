@@ -5,7 +5,7 @@ use std::string::String;
 use std::vec;
 // use tabwriter::TabWriter;
 
-use config::Delimiter;
+use config::{Config, Delimiter};
 use util;
 use CliResult;
 
@@ -30,6 +30,7 @@ headers options:
 
 Common options:
     -h, --help             Display this message
+    -o, --output <file>    Write output to <file> instead of stdout.
     -d, --delimiter <arg>  The field delimiter for reading CSV data.
                            Must be a single character. (default: ,)
 ";
@@ -40,6 +41,7 @@ struct Args {
     flag_just_names: bool,
     flag_intersect: bool,
     flag_delimiter: Option<Delimiter>,
+    flag_output: Option<String>,
 }
 use IoRedef;
 pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
@@ -48,29 +50,25 @@ pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 
     let num_inputs = configs.len();
     let mut headers: Vec<Vec<u8>> = vec![];
+
     for conf in configs.into_iter() {
         let mut rdr = conf.reader()?;
         for header in rdr.byte_headers()?.iter() {
             if !args.flag_intersect || !headers.iter().any(|h| &**h == header) {
-                headers.push(header.to_vec());
+                    headers.push(header.to_vec());
+
             }
         }
     }
+    let mut wtr: Box<io::Write> = Config::new(&args.flag_output, ioobj.clone()).io_writer()?;
 
-    // let mut wtr: Box<io::Write> =
-    //     if args.flag_just_names {
-    //         Box::new(io::stdout())
-    //     } else {
-    //         // Box::new(TabWriter::new(io::stdout()))
-    //         Box::new(io::stdout())
-    //     };
-    // for (i, header) in headers.into_iter().enumerate() {
-    //     if num_inputs == 1 && !args.flag_just_names {
-    //         write!(&mut wtr, "{}\t", i+1)?;
-    //     }
-    //     wtr.write_all(&header)?;
-    //     wtr.write_all(b"\n")?;
-    // }
-    // wtr.flush()?;
+    for (i, header) in headers.into_iter().enumerate() {
+        if num_inputs == 1 && !args.flag_just_names {
+            write!(&mut wtr, "{}\t", i+1)?;
+        }
+        wtr.write_all(&header)?;
+        wtr.write_all(b"\n")?;
+    }
+    wtr.flush()?;
     Ok(())
 }
