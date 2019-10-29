@@ -155,7 +155,7 @@ impl<W: io::Write> IoState<W> {
                         eq_num += 1;
                         let mut tmp_row = row.clone();
                         tmp_row.extend(row2.iter());
-                        self.wtr.write_byte_record(&tmp_row)?;
+                        self.wtr.write_record(tmp_row.iter())?;
                         if self.flag_unique {
                             break;
                         }
