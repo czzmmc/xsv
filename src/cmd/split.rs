@@ -63,7 +63,7 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     if args.flag_size == 0 {
         return fail!("--size must be greater than 0.");
@@ -78,18 +78,18 @@ pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 }
 
 impl Args {
-    fn sequential_split<T: IoRedef + Clone>(&self, ioobj: T) -> CliResult<()> {
-        let rconfig = self.rconfig(ioobj.clone());
+    fn sequential_split<T: IoRedef + ?Sized>(&self, ioobj: &T) -> CliResult<()> {
+        let rconfig = self.rconfig(ioobj);
         let mut rdr = rconfig.reader()?;
         let headers = rdr.byte_headers()?.clone();
 
-        let mut wtr = self.new_writer(&headers, 0, ioobj.clone())?;
+        let mut wtr = self.new_writer(&headers, 0, ioobj)?;
         let mut i = 0;
         let mut row = csv::ByteRecord::new();
         while rdr.read_byte_record(&mut row)? {
             if i > 0 && i % self.flag_size == 0 {
                 wtr.flush()?;
-                wtr = self.new_writer(&headers, i, ioobj.clone())?;
+                wtr = self.new_writer(&headers, i, ioobj)?;
             }
             wtr.write_byte_record(&row)?;
             i += 1;
@@ -131,24 +131,24 @@ impl Args {
     //     Ok(())
     // }
 
-    fn new_writer<T: IoRedef + Clone>(
+    fn new_writer<T: IoRedef + ?Sized>(
         &self,
         headers: &csv::ByteRecord,
         start: usize,
-        ioobj: T,
+        ioobj: &T,
     ) -> CliResult<csv::Writer<Box<dyn io::Write>>> {
         let dir = Path::new(&self.arg_outdir);
         let path = dir.join(self.flag_filename.filename(&format!("{}", start)));
         let spath = Some(path.display().to_string());
-        let mut wtr = Config::new(&spath, ioobj.clone()).writer()?;
-        if !self.rconfig(ioobj.clone()).no_headers {
+        let mut wtr = Config::new(&spath, ioobj).writer()?;
+        if !self.rconfig(ioobj).no_headers {
             wtr.write_record(headers)?;
         }
         Ok(wtr)
     }
 
-    fn rconfig<T: IoRedef + Clone>(&self, ioop: T) -> Config<T> {
-        Config::new(&self.arg_input, ioop.clone())
+    fn rconfig<'a, T: IoRedef + ?Sized>(&self, ioop: &'a T) -> Config<'a, T> {
+        Config::new(&self.arg_input, ioop)
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
     }

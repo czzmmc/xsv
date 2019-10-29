@@ -51,20 +51,20 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
 }
 
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
 
     if args.cmd_rows {
-        args.cat_rows(ioobj.clone())
+        args.cat_rows(ioobj)
     } else if args.cmd_columns {
-        args.cat_columns(ioobj.clone())
+        args.cat_columns(ioobj)
     } else {
         unreachable!();
     }
 }
 
-impl Args {
-    fn configs<T: IoRedef + Clone>(&self, ioobj: T) -> CliResult<Vec<Config<T>>> {
+impl<'a> Args {
+    fn configs<T: IoRedef + ?Sized>(&self, ioobj: &'a T) -> CliResult<Vec<Config<'a, T>>> {
         util::many_configs(
             &*self.arg_input,
             self.flag_delimiter,
@@ -74,10 +74,10 @@ impl Args {
         .map_err(From::from)
     }
 
-    fn cat_rows<T: IoRedef + Clone>(&self, ioobj: T) -> CliResult<()> {
+    fn cat_rows<T: IoRedef + ?Sized>(&self, ioobj: &T) -> CliResult<()> {
         let mut row = csv::ByteRecord::new();
-        let mut wtr = Config::new(&self.flag_output, ioobj.clone()).writer()?;
-        for (i, conf) in self.configs(ioobj.clone())?.into_iter().enumerate() {
+        let mut wtr = Config::new(&self.flag_output, ioobj).writer()?;
+        for (i, conf) in self.configs(ioobj)?.into_iter().enumerate() {
             let mut rdr = conf.reader()?;
             if i == 0 {
                 conf.write_headers(&mut rdr, &mut wtr)?;
@@ -89,10 +89,10 @@ impl Args {
         wtr.flush().map_err(From::from)
     }
 
-    fn cat_columns<T: IoRedef + Clone>(&self, ioobj: T) -> CliResult<()> {
-        let mut wtr = Config::new(&self.flag_output, ioobj.clone()).writer()?;
+    fn cat_columns<T: IoRedef + ?Sized>(&self, ioobj: &T) -> CliResult<()> {
+        let mut wtr = Config::new(&self.flag_output, ioobj).writer()?;
         let mut rdrs = self
-            .configs(ioobj.clone())?
+            .configs(ioobj)?
             .into_iter()
             .map(|conf| conf.no_headers(true).reader())
             .collect::<Result<Vec<_>, _>>()?;

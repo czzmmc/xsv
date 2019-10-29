@@ -39,13 +39,13 @@ struct Args {
     flag_no_quoting: bool,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let mut rconfig = Config::new(&args.arg_input, ioobj.clone())
+    let mut rconfig = Config::new(&args.arg_input, ioobj)
         .delimiter(args.flag_delimiter)
         .no_headers(true)
         .quote(args.flag_quote.as_byte());
-    let wconfig = Config::new(&args.flag_output, ioobj.clone());
+    let wconfig = Config::new(&args.flag_output, ioobj);
 
     if let Some(escape) = args.flag_escape {
         rconfig = rconfig.escape(Some(escape.as_byte())).double_quote(false);

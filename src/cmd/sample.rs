@@ -54,14 +54,14 @@ struct Args {
     flag_seed: Option<usize>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let rconfig = Config::new(&args.arg_input, ioobj.clone())
+    let rconfig = Config::new(&args.arg_input, ioobj)
         .delimiter(args.flag_delimiter)
         .no_headers(args.flag_no_headers);
     let sample_size = args.arg_sample_size;
 
-    let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
+    let mut wtr = Config::new(&args.flag_output, ioobj).writer()?;
     let sampled = match rconfig.indexed()? {
         Some(mut idx) => {
             if do_random_access(sample_size, idx.count()) {

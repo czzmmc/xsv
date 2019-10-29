@@ -48,13 +48,13 @@ struct Args {
 }
 
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
 
-    let rconfig = Config::new(&args.arg_input, ioobj.clone())
+    let rconfig = Config::new(&args.arg_input, ioobj)
         .delimiter(args.flag_delimiter)
         .no_headers(true);
-    let mut wconfig = Config::new(&args.flag_output, ioobj.clone())
+    let mut wconfig = Config::new(&args.flag_output, ioobj)
         .delimiter(args.flag_out_delimiter)
         .crlf(args.flag_crlf);
 

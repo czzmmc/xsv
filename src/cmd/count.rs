@@ -31,9 +31,9 @@ struct Args {
     flag_output: Option<String>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let conf = Config::new(&args.arg_input, ioobj.clone())
+    let conf = Config::new(&args.arg_input, ioobj)
         .delimiter(args.flag_delimiter)
         .no_headers(args.flag_no_headers);
 
@@ -49,7 +49,7 @@ pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
             count
         }
     };
-    let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
+    let mut wtr = Config::new(&args.flag_output, ioobj).writer()?;
     wtr.write_record(vec![count.to_string()])?;
     wtr.flush()?;
     Ok(())

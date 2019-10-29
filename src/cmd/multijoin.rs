@@ -74,12 +74,12 @@ struct OpArgs {
     flag_delimiter: Option<Delimiter>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: OpArgs = util::get_args(USAGE, argv)?;
     if !args.flag_descended && !args.flag_ascended || args.flag_ascended && args.flag_descended {
         return Err(CliError::Other("Parameter error".to_string()));
     }
-    let mut state = args.new_io_state(ioobj.clone())?;
+    let mut state = args.new_io_state(ioobj)?;
     state.write_headers()?;
     state.inner_join()?;
     Ok(())
@@ -220,14 +220,17 @@ impl<W: io::Write> IoState<W> {
 }
 
 impl OpArgs {
-    fn new_io_state<T: IoRedef + Clone>(&self, ioop: T) -> CliResult<IoState<Box<dyn io::Write>>> {
+    fn new_io_state<T: IoRedef + ?Sized>(
+        &self,
+        ioobj: &T,
+    ) -> CliResult<IoState<Box<dyn io::Write>>> {
         let mut rdr = Vec::new();
         let mut sel = Vec::new();
         let num = self.arg_input.len();
         let mut i = 0;
         let mut sel_num = 0;
         while i < num {
-            let rconf1 = Config::new(&Some(self.arg_input[i].clone()), ioop.clone())
+            let rconf1 = Config::new(&Some(self.arg_input[i].clone()), ioobj)
                 .delimiter(self.flag_delimiter)
                 .no_headers(self.flag_no_headers)
                 .select(self.arg_column[i].clone());
@@ -247,7 +250,7 @@ impl OpArgs {
             i += 1;
         }
         Ok(IoState {
-            wtr: Config::new(&self.flag_output, ioop).writer()?,
+            wtr: Config::new(&self.flag_output, ioobj).writer()?,
             rdr: rdr,
             sel: sel,
             no_headers: self.flag_no_headers,
@@ -259,7 +262,7 @@ impl OpArgs {
         })
     }
 
-    fn get_selections<R: io::Read, T: IoRedef + Clone>(
+    fn get_selections<R: io::Read, T: IoRedef + ?Sized>(
         &self,
         rconf1: &Config<T>,
         rdr1: &mut csv::Reader<R>,

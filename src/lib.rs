@@ -147,7 +147,7 @@ struct Args {
 }
 pub struct XsvMain;
 impl XsvMain {
-    pub fn new<T: IoRedef + Clone>(arg: Vec<&str>, ioobj: T) -> RunResult<()> {
+    pub fn new<T: IoRedef + ?Sized>(arg: Vec<&str>, ioobj: &T) -> RunResult<()> {
         let args: Args = Docopt::new(USAGE)
             .and_then(|d| {
                 d.argv(arg.clone())
@@ -231,7 +231,7 @@ enum Command {
 }
 
 impl Command {
-    fn run<T: IoRedef + Clone>(self, arg: Vec<String>, ioobj: T) -> CliResult<()> {
+    fn run<T: IoRedef + ?Sized>(self, arg: Vec<String>, ioobj: &T) -> CliResult<()> {
         let argv: Vec<_> = arg.iter().map(|s| &**s).collect();
         let argv = &*argv;
 

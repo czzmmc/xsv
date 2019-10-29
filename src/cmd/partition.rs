@@ -59,7 +59,7 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     // fs::create_dir_all(&args.arg_outdir)?;
 
@@ -72,15 +72,15 @@ pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 
 impl Args {
     /// Configuration for our reader.
-    fn rconfig<T: IoRedef + Clone>(&self, ioobj: T) -> Config<T> {
-        Config::new(&self.arg_input, ioobj.clone())
+    fn rconfig<'a, T: IoRedef + ?Sized>(&self, ioobj: &'a T) -> Config<'a, T> {
+        Config::new(&self.arg_input, ioobj)
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
             .select(self.arg_column.clone())
     }
 
     /// Get the column to use as a key.
-    fn key_column<T: IoRedef + Clone>(
+    fn key_column<T: IoRedef + ?Sized>(
         &self,
         rconfig: &Config<T>,
         headers: &csv::ByteRecord,
@@ -94,8 +94,8 @@ impl Args {
     }
 
     /// A basic sequential partition.
-    fn sequential_partition<T: IoRedef + Clone>(&self, ioobj: T) -> CliResult<()> {
-        let rconfig = self.rconfig(ioobj.clone());
+    fn sequential_partition<T: IoRedef + ?Sized>(&self, ioobj: &T) -> CliResult<()> {
+        let rconfig = self.rconfig(ioobj);
         let mut rdr = rconfig.reader()?;
         let headers = rdr.byte_headers()?.clone();
         let key_col = self.key_column(&rconfig, &headers)?;
@@ -117,7 +117,7 @@ impl Args {
                     Entry::Occupied(ref mut occupied) => occupied.get_mut(),
                     Entry::Vacant(vacant) => {
                         // We have a new key, so make a new writer.
-                        let mut wtr = gen.writer(&*self.arg_outdir, key, ioobj.clone())?;
+                        let mut wtr = gen.writer(&*self.arg_outdir, key, ioobj)?;
                         if !rconfig.no_headers {
                             if self.flag_drop {
                                 wtr.write_record(headers.iter().enumerate().filter_map(
@@ -167,10 +167,10 @@ impl WriterGenerator {
     }
 
     /// Create a CSV writer for `key`.  Does not add headers.
-    fn writer<P, T>(&mut self, path: P, key: &[u8], ioobj: T) -> io::Result<BoxedWriter>
+    fn writer<P, T>(&mut self, path: P, key: &[u8], ioobj: &T) -> io::Result<BoxedWriter>
     where
         P: AsRef<Path>,
-        T: IoRedef + Clone,
+        T: IoRedef + ?Sized,
     {
         let unique_value = self.unique_value(key);
         self.template.writer(path.as_ref(), &unique_value, ioobj)

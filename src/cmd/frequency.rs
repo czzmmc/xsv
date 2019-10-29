@@ -80,12 +80,12 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     let rconfig = args.rconfig(ioobj.clone());
 
-    let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
-    let (headers, tables) = args.sequential_ftables(ioobj.clone())?;
+    let mut wtr = Config::new(&args.flag_output, ioobj).writer()?;
+    let (headers, tables) = args.sequential_ftables(ioobj)?;
     // let (headers, tables) = match args.rconfig().indexed()? {
     //     Some(ref mut idx) if args.njobs() > 1 => args.parallel_ftables(idx),
     //     _ => args.sequential_ftables(),
@@ -113,8 +113,8 @@ type FTable = Frequencies<Vec<u8>>;
 type FTables = Vec<Frequencies<Vec<u8>>>;
 
 impl Args {
-    fn rconfig<T: IoRedef + Clone>(&self, ioop: T) -> Config<T> {
-        Config::new(&self.arg_input, ioop.clone())
+    fn rconfig<'a, T: IoRedef + ?Sized>(&self, ioobj: &'a T) -> Config<'a, T> {
+        Config::new(&self.arg_input, ioobj)
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
             .select(self.flag_select.clone())
@@ -141,9 +141,9 @@ impl Args {
             .collect()
     }
 
-    fn sequential_ftables<T: IoRedef + Clone>(&self, ioop: T) -> CliResult<(Headers, FTables)> {
-        let mut rdr = self.rconfig(ioop.clone()).reader()?;
-        let (headers, sel) = self.sel_headers(&mut rdr, ioop.clone())?;
+    fn sequential_ftables<T: IoRedef + ?Sized>(&self, ioobj: &T) -> CliResult<(Headers, FTables)> {
+        let mut rdr = self.rconfig(ioobj).reader()?;
+        let (headers, sel) = self.sel_headers(&mut rdr, ioobj)?;
         Ok((headers, self.ftables(&sel, rdr.byte_records())?))
     }
 
@@ -197,13 +197,13 @@ impl Args {
         Ok(tabs)
     }
 
-    fn sel_headers<R: io::Read, T: IoRedef + Clone>(
+    fn sel_headers<R: io::Read, T: IoRedef + ?Sized>(
         &self,
         rdr: &mut csv::Reader<R>,
-        ioop: T,
+        ioobj: &T,
     ) -> CliResult<(csv::ByteRecord, Selection)> {
         let headers = rdr.byte_headers()?;
-        let sel = self.rconfig(ioop.clone()).selection(headers)?;
+        let sel = self.rconfig(ioobj).selection(headers)?;
         Ok((sel.select(headers).map(|h| h.to_vec()).collect(), sel))
     }
 

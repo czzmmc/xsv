@@ -62,7 +62,7 @@ impl<'de> Deserialize<'de> for Delimiter {
 }
 
 #[derive(Debug)]
-pub struct Config<T: IoRedef + Clone> {
+pub struct Config<'a, T: IoRedef + ?Sized> {
     path: Option<PathBuf>, // None implies <stdin>
     idx_path: Option<PathBuf>,
     select_columns: Option<SelectColumns>,
@@ -75,11 +75,11 @@ pub struct Config<T: IoRedef + Clone> {
     double_quote: bool,
     escape: Option<u8>,
     quoting: bool,
-    pub ioop: T,
+    pub ioop: &'a T,
 }
 
-impl<T: IoRedef + Clone> Config<T> {
-    pub fn new(path: &Option<String>, ioop: T) -> Config<T> {
+impl<'a, T: IoRedef + ?Sized> Config<'a, T> {
+    pub fn new(path: &Option<String>, ioop: &'a T) -> Config<'a, T> {
         let (path, delim) = match *path {
             None => (None, b','),
             Some(ref s) if s.deref() == "-" => (None, b','),
@@ -110,14 +110,14 @@ impl<T: IoRedef + Clone> Config<T> {
         }
     }
 
-    pub fn delimiter(mut self, d: Option<Delimiter>) -> Config<T> {
+    pub fn delimiter(mut self, d: Option<Delimiter>) -> Config<'a, T> {
         if let Some(d) = d {
             self.delimiter = d.as_byte();
         }
         self
     }
 
-    pub fn no_headers(mut self, yes: bool) -> Config<T> {
+    pub fn no_headers(mut self, yes: bool) -> Config<'a, T> {
         // if env::var("XSV_TOGGLE_HEADERS").unwrap_or("0".to_owned()) == "1" {
         //     yes = !yes;
         // }
@@ -125,12 +125,12 @@ impl<T: IoRedef + Clone> Config<T> {
         self
     }
 
-    pub fn flexible(mut self, yes: bool) -> Config<T> {
+    pub fn flexible(mut self, yes: bool) -> Config<'a, T> {
         self.flexible = yes;
         self
     }
 
-    pub fn crlf(mut self, yes: bool) -> Config<T> {
+    pub fn crlf(mut self, yes: bool) -> Config<'a, T> {
         if yes {
             self.terminator = csv::Terminator::CRLF;
         } else {
@@ -139,37 +139,37 @@ impl<T: IoRedef + Clone> Config<T> {
         self
     }
 
-    pub fn terminator(mut self, term: csv::Terminator) -> Config<T> {
+    pub fn terminator(mut self, term: csv::Terminator) -> Config<'a, T> {
         self.terminator = term;
         self
     }
 
-    pub fn quote(mut self, quote: u8) -> Config<T> {
+    pub fn quote(mut self, quote: u8) -> Config<'a, T> {
         self.quote = quote;
         self
     }
 
-    pub fn quote_style(mut self, style: csv::QuoteStyle) -> Config<T> {
+    pub fn quote_style(mut self, style: csv::QuoteStyle) -> Config<'a, T> {
         self.quote_style = style;
         self
     }
 
-    pub fn double_quote(mut self, yes: bool) -> Config<T> {
+    pub fn double_quote(mut self, yes: bool) -> Config<'a, T> {
         self.double_quote = yes;
         self
     }
 
-    pub fn escape(mut self, escape: Option<u8>) -> Config<T> {
+    pub fn escape(mut self, escape: Option<u8>) -> Config<'a, T> {
         self.escape = escape;
         self
     }
 
-    pub fn quoting(mut self, yes: bool) -> Config<T> {
+    pub fn quoting(mut self, yes: bool) -> Config<'a, T> {
         self.quoting = yes;
         self
     }
 
-    pub fn select(mut self, sel_cols: SelectColumns) -> Config<T> {
+    pub fn select(mut self, sel_cols: SelectColumns) -> Config<'a, T> {
         self.select_columns = Some(sel_cols);
         self
     }

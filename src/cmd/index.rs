@@ -47,7 +47,7 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
 
     let pidx = match args.flag_output {
@@ -55,7 +55,7 @@ pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
         Some(p) => PathBuf::from(&p),
     };
 
-    let rconfig = Config::new(&Some(args.arg_input), ioobj.clone()).delimiter(args.flag_delimiter);
+    let rconfig = Config::new(&Some(args.arg_input), ioobj).delimiter(args.flag_delimiter);
     let mut rdr = rconfig.reader_file()?;
     let op = rconfig.ioop;
     let mut wtr = io::BufWriter::new(op.io_writer(Some(pidx))?);

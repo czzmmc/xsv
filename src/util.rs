@@ -47,12 +47,12 @@ where
         .map_err(From::from)
 }
 
-pub fn many_configs<T: IoRedef + Clone>(
+pub fn many_configs<'a, T: IoRedef + ?Sized>(
     inps: &[String],
     delim: Option<Delimiter>,
     no_headers: bool,
-    ioobj: T,
-) -> Result<Vec<Config<T>>, String> {
+    ioobj: &'a T,
+) -> Result<Vec<Config<'a, T>>, String> {
     let mut inps = inps.to_vec();
     if inps.is_empty() {
         inps.push("-".to_owned()); // stdin
@@ -60,7 +60,7 @@ pub fn many_configs<T: IoRedef + Clone>(
     let confs = inps
         .into_iter()
         .map(|p| {
-            Config::new(&Some(p), ioobj.clone())
+            Config::new(&Some(p), ioobj)
                 .delimiter(delim)
                 .no_headers(no_headers)
         })
@@ -69,7 +69,7 @@ pub fn many_configs<T: IoRedef + Clone>(
     Ok(confs)
 }
 
-pub fn errif_greater_one_stdin<T: IoRedef + Clone>(inps: &[Config<T>]) -> Result<(), String> {
+pub fn errif_greater_one_stdin<T: IoRedef + ?Sized>(inps: &[Config<T>]) -> Result<(), String> {
     let nstd = inps.iter().filter(|inp| inp.is_std()).count();
     if nstd > 1 {
         return Err("At most one <stdin> input is allowed.".to_owned());
@@ -211,11 +211,11 @@ impl FilenameTemplate {
         &self,
         path: P,
         unique_value: &str,
-        ioobj: T,
+        ioobj: &T,
     ) -> io::Result<csv::Writer<Box<dyn io::Write>>>
     where
         P: AsRef<Path>,
-        T: IoRedef + Clone,
+        T: IoRedef + ?Sized,
     {
         let filename = self.filename(unique_value);
         let full_path = path.as_ref().join(filename);

@@ -89,13 +89,13 @@ pub fn simple_test_join() {
             "-o",
             "test_data_join2.csv"
         ],
-        tt
+        &tt
     )
     .is_ok())
 }
 pub fn simple_test_split() {
     let tt = CommonXsv;
-    assert!(XsvMain::new(vec!["xsv", "split", "", "mydb.csv",], tt).is_ok())
+    assert!(XsvMain::new(vec!["xsv", "split", "", "mydb.csv",], &tt).is_ok())
 }
 pub fn simple_test_headers() {
     let tt = CommonXsv;
@@ -109,13 +109,13 @@ pub fn simple_test_headers() {
             "mydb.csv",
             "mydb2.csv"
         ],
-        tt
+        &tt
     )
     .is_ok())
 }
 pub fn simple_test_partition() {
     let tt = CommonXsv;
-    assert!(XsvMain::new(vec!["xsv", "partition", "1", "", "mydb.csv",], tt).is_ok())
+    assert!(XsvMain::new(vec!["xsv", "partition", "1", "", "mydb.csv",], &tt).is_ok())
 }
 pub fn test_multijoin() {
     let tt = CommonXsv;
@@ -133,7 +133,7 @@ pub fn test_multijoin() {
             "1",
             "join_inner_places.csv",
         ],
-        tt
+        &tt
     )
     .is_ok())
 }
@@ -211,7 +211,7 @@ impl Workdir {
 
     pub fn run(&self, cmd: Vec<&str>) -> bool {
         let tt = CommonXsv;
-        (XsvMain::new(cmd, tt)).is_ok()
+        (XsvMain::new(cmd, &tt)).is_ok()
     }
 
     pub fn assert_err(&self, cmd: Vec<&str>) {

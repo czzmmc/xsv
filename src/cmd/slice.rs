@@ -57,20 +57,19 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    match args.rconfig(ioobj.clone()).indexed()? {
-        None => args.no_index(ioobj.clone()),
-        Some(idxed) => args.with_index(idxed, ioobj.clone()),
+    match args.rconfig(ioobj).indexed()? {
+        None => args.no_index(ioobj),
+        Some(idxed) => args.with_index(idxed, ioobj),
     }
 }
 
 impl Args {
-    fn no_index<T: IoRedef + Clone>(&self, ioop: T) -> CliResult<()> {
-        let mut rdr = self.rconfig(ioop.clone()).reader()?;
-        let mut wtr = self.wconfig(ioop.clone()).writer()?;
-        self.rconfig(ioop.clone())
-            .write_headers(&mut rdr, &mut wtr)?;
+    fn no_index<T: IoRedef + ?Sized>(&self, ioobj: &T) -> CliResult<()> {
+        let mut rdr = self.rconfig(ioobj).reader()?;
+        let mut wtr = self.wconfig(ioobj).writer()?;
+        self.rconfig(ioobj).write_headers(&mut rdr, &mut wtr)?;
 
         let (start, end) = self.range()?;
         for r in rdr.byte_records().skip(start).take(end - start) {
@@ -79,14 +78,13 @@ impl Args {
         Ok(wtr.flush()?)
     }
 
-    fn with_index<T: IoRedef + Clone, U: io::Seek + io::Read>(
+    fn with_index<T: IoRedef + ?Sized, U: io::Seek + io::Read>(
         &self,
         mut idx: Indexed<U, U>,
-        ioop: T,
+        ioobj: &T,
     ) -> CliResult<()> {
-        let mut wtr = self.wconfig(ioop.clone()).writer()?;
-        self.rconfig(ioop.clone())
-            .write_headers(&mut *idx, &mut wtr)?;
+        let mut wtr = self.wconfig(ioobj).writer()?;
+        self.rconfig(ioobj).write_headers(&mut *idx, &mut wtr)?;
 
         let (start, end) = self.range()?;
         if end - start == 0 {
@@ -109,13 +107,13 @@ impl Args {
         )
     }
 
-    fn rconfig<T: IoRedef + Clone>(&self, ioop: T) -> Config<T> {
-        Config::new(&self.arg_input, ioop)
+    fn rconfig<'a, T: IoRedef + ?Sized>(&self, ioobj: &'a T) -> Config<'a, T> {
+        Config::new(&self.arg_input, ioobj)
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
     }
 
-    fn wconfig<T: IoRedef + Clone>(&self, ioop: T) -> Config<T> {
-        Config::new(&self.flag_output, ioop)
+    fn wconfig<'a, T: IoRedef + ?Sized>(&self, ioobj: &'a T) -> Config<'a, T> {
+        Config::new(&self.flag_output, ioobj)
     }
 }

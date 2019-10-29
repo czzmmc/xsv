@@ -44,9 +44,9 @@ struct Args {
     flag_output: Option<String>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let configs = util::many_configs(&*args.arg_input, args.flag_delimiter, true, ioobj.clone())?;
+    let configs = util::many_configs(&*args.arg_input, args.flag_delimiter, true, ioobj)?;
 
     let num_inputs = configs.len();
     let mut headers: Vec<Vec<u8>> = vec![];
@@ -59,7 +59,7 @@ pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
             }
         }
     }
-    let mut wtr: Box<dyn io::Write> = Config::new(&args.flag_output, ioobj.clone()).io_writer()?;
+    let mut wtr: Box<dyn io::Write> = Config::new(&args.flag_output, ioobj).io_writer()?;
 
     for (i, header) in headers.into_iter().enumerate() {
         if num_inputs == 1 && !args.flag_just_names {

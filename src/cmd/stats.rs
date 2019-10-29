@@ -85,11 +85,11 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
 
-    let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
-    let (headers, stats) = args.sequential_stats(ioobj.clone())?;
+    let mut wtr = Config::new(&args.flag_output, ioobj).writer()?;
+    let (headers, stats) = args.sequential_stats(ioobj)?;
     // let (headers, stats) = match args.rconfig().indexed()? {
     //     None => args.sequential_stats(),
     //     Some(idx) => {
@@ -121,12 +121,12 @@ pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
 }
 
 impl Args {
-    fn sequential_stats<T: IoRedef + Clone>(
+    fn sequential_stats<T: IoRedef + ?Sized>(
         &self,
-        ioobj: T,
+        ioobj: &T,
     ) -> CliResult<(csv::ByteRecord, Vec<Stats>)> {
-        let mut rdr = self.rconfig(ioobj.clone()).reader()?;
-        let (headers, sel) = self.sel_headers(&mut rdr, ioobj.clone())?;
+        let mut rdr = self.rconfig(ioobj).reader()?;
+        let (headers, sel) = self.sel_headers(&mut rdr, ioobj)?;
         let stats = self.compute(&sel, rdr.byte_records())?;
         Ok((headers, stats))
     }
@@ -199,17 +199,17 @@ impl Args {
         Ok(stats)
     }
 
-    fn sel_headers<R: io::Read, T: IoRedef + Clone>(
+    fn sel_headers<R: io::Read, T: IoRedef + ?Sized>(
         &self,
         rdr: &mut csv::Reader<R>,
-        ioobj: T,
+        ioobj: &T,
     ) -> CliResult<(csv::ByteRecord, Selection)> {
         let headers = rdr.byte_headers()?.clone();
         let sel = self.rconfig(ioobj).selection(&headers)?;
         Ok((csv::ByteRecord::from_iter(sel.select(&headers)), sel))
     }
 
-    fn rconfig<T: IoRedef + Clone>(&self, ioobj: T) -> Config<T> {
+    fn rconfig<'a, T: IoRedef + ?Sized>(&self, ioobj: &'a T) -> Config<'a, T> {
         Config::new(&self.arg_input, ioobj)
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)

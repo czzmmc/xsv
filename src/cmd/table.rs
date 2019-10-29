@@ -47,12 +47,12 @@ struct Args {
     flag_condense: Option<usize>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let rconfig = Config::new(&args.arg_input, ioobj.clone())
+    let rconfig = Config::new(&args.arg_input, ioobj)
         .delimiter(args.flag_delimiter)
         .no_headers(true);
-    let wconfig = Config::new(&args.flag_output, ioobj.clone()).delimiter(Some(Delimiter(b'\t')));
+    let wconfig = Config::new(&args.flag_output, ioobj).delimiter(Some(Delimiter(b'\t')));
 
     // let tw = TabWriter::new(wconfig.io_writer()?)
     //     .minwidth(args.flag_width)

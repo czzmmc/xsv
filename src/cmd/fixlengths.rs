@@ -40,9 +40,9 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let config = Config::new(&args.arg_input, ioobj.clone())
+    let config = Config::new(&args.arg_input, ioobj)
         .delimiter(args.flag_delimiter)
         .no_headers(true)
         .flexible(true);
@@ -79,7 +79,7 @@ pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
     };
 
     let mut rdr = config.reader()?;
-    let mut wtr = Config::new(&args.flag_output, ioobj.clone()).writer()?;
+    let mut wtr = Config::new(&args.flag_output, ioobj).writer()?;
     for r in rdr.byte_records() {
         let mut r = r?;
         if length >= r.len() {

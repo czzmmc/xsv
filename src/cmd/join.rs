@@ -96,7 +96,7 @@ struct Args {
     flag_delimiter: Option<Delimiter>,
 }
 use IoRedef;
-pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
+pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
     let mut state = args.new_io_state(ioobj)?;
     match (
@@ -277,15 +277,15 @@ impl<R: io::Read + io::Seek, W: io::Write> IoState<R, W> {
 }
 
 impl Args {
-    fn new_io_state<T: IoRedef + Clone>(
+    fn new_io_state<T: IoRedef + ?Sized>(
         &self,
-        ioop: T,
+        ioobj: &T,
     ) -> CliResult<IoState<Box<dyn SeekRead>, Box<dyn io::Write>>> {
-        let rconf1 = Config::new(&Some(self.arg_input1.clone()), ioop.clone())
+        let rconf1 = Config::new(&Some(self.arg_input1.clone()), ioobj)
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
             .select(self.arg_columns1.clone());
-        let rconf2 = Config::new(&Some(self.arg_input2.clone()), ioop.clone())
+        let rconf2 = Config::new(&Some(self.arg_input2.clone()), ioobj)
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
             .select(self.arg_columns2.clone());
@@ -293,7 +293,7 @@ impl Args {
         let mut rdr2 = rconf2.reader_file()?;
         let (sel1, sel2) = self.get_selections(&rconf1, &mut rdr1, &rconf2, &mut rdr2)?;
         Ok(IoState {
-            wtr: Config::new(&self.flag_output, ioop).writer()?,
+            wtr: Config::new(&self.flag_output, ioobj).writer()?,
             rdr1: rdr1,
             sel1: sel1,
             rdr2: rdr2,
@@ -304,7 +304,7 @@ impl Args {
         })
     }
 
-    fn get_selections<R: io::Read, T: IoRedef + Clone>(
+    fn get_selections<R: io::Read, T: IoRedef + ?Sized>(
         &self,
         rconf1: &Config<T>,
         rdr1: &mut csv::Reader<R>,
