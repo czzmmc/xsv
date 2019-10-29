@@ -15,12 +15,12 @@ use std::vec;
 use csv;
 use stats::{merge_all, Commute, MinMax, OnlineStats, Unsorted};
 // use threadpool::ThreadPool;
+use self::FieldType::{TFloat, TInteger, TNull, TUnicode, TUnknown};
 use config::{Config, Delimiter};
 use index::Indexed;
 use select::{SelectColumns, Selection};
 use util;
 use CliResult;
-use self::FieldType::{TFloat, TInteger, TNull, TUnicode, TUnknown};
 
 static USAGE: &'static str = "
 Computes basic statistics on CSV data.

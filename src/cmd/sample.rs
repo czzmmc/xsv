@@ -11,7 +11,6 @@ use rand::{thread_rng, Rng, SeedableRng};
 use util;
 use CliResult;
 
-
 static USAGE: &'static str = "
 Randomly samples CSV data uniformly using memory proportional to the size of
 the sample.

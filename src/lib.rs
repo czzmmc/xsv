@@ -26,24 +26,21 @@ extern crate stats;
 // extern crate threadpool;
 
 use std::borrow::ToOwned;
-use std::env;
+// use std::env;
 use std::fmt;
 use std::io;
 use std::string::String;
 // use std::process;
-use docopt::{parse::Parser, Docopt};
+use docopt::Docopt;
 use std::format;
 use std::io::{Error, ErrorKind};
-pub type rResult<T> = std::result::Result<T, Error>;
+pub type RunResult<T> = std::result::Result<T, Error>;
 use std::boxed::Box;
 #[cfg(not(feature = "mesalock_sgx"))]
 use std::fs;
-use std::path::{Path,PathBuf};
+use std::path::PathBuf;
 #[cfg(feature = "mesalock_sgx")]
 use std::untrusted::fs;
-use std::vec;
-// trait io::Seek + io::Read: io::Seek + io::Read {}
-// impl<T: io::Seek + io::Read> io::Seek + io::Read for T {}
 
 macro_rules! wout {
     ($($arg:tt)*) => ({
@@ -79,6 +76,7 @@ macro_rules! command_list {
     index       Create CSV index for faster access
     input       Read CSV data with special quoting rules
     join        Join CSV files
+    partition   Partition CSV data based on a column value
     sample      Randomly sample CSV data
     reverse     Reverse rows of CSV data
     search      Search CSV data with regexes
@@ -87,6 +85,7 @@ macro_rules! command_list {
     sort        Sort CSV data
     split       Split CSV data into many files
     stats       Compute basic statistics
+    MultiJoin   Join multiple CSV files
 "
     };
 }
@@ -148,7 +147,7 @@ struct Args {
 }
 pub struct XsvMain;
 impl XsvMain {
-    pub fn new<T: IoRedef + Clone>(arg: Vec<&str>, ioobj: T) -> rResult<()> {
+    pub fn new<T: IoRedef + Clone>(arg: Vec<&str>, ioobj: T) -> RunResult<()> {
         let args: Args = Docopt::new(USAGE)
             .and_then(|d| {
                 d.argv(arg.clone())
@@ -156,14 +155,11 @@ impl XsvMain {
                     .version(Some(util::version()))
                     .deserialize()
             })
-            .map_err(|_| Error::from(ErrorKind::InvalidData))?;
+            .map_err(|_| Error::new(ErrorKind::InvalidData, "Parameter parsing error"))?;
 
         if args.flag_list {
             let errmsg = wout!(concat!("Installed commands:", command_list!()));
-            return Err(Error::new(
-                        ErrorKind::InvalidData,
-                        errmsg,
-                    ));
+            return Err(Error::new(ErrorKind::InvalidData, errmsg));
         }
         match args.arg_command {
             None => {
@@ -173,53 +169,37 @@ impl XsvMain {
                     Please choose one of the following commands:",
                     command_list!()
                 ));
-                return Ok(());
+                Ok(())
             }
             Some(cmd) => {
                 match cmd.run(
                     arg.clone().into_iter().map(|s| s.to_owned()).collect(),
                     ioobj,
                 ) {
-                    Ok(()) => return Ok(()),
+                    Ok(()) => Ok(()),
                     Err(CliError::Flag(err)) => {
                         let errmsg = wout!("{}", err);
-                        return Err(Error::new(
-                        ErrorKind::InvalidData,
-                        errmsg,
-                    ));
-                    },
+                        Err(Error::new(ErrorKind::InvalidData, errmsg))
+                    }
                     Err(CliError::Csv(err)) => {
                         let errmsg = wout!("{}", err);
-                        return Err(Error::new(
-                        ErrorKind::InvalidData,
-                        errmsg,
-                    ));
+                        Err(Error::new(ErrorKind::InvalidData, errmsg))
                     }
                     Err(CliError::Io(ref err)) if err.kind() == io::ErrorKind::BrokenPipe => {
                         let errmsg = wout!("{}", err);
-                        return Err(Error::new(
-                        ErrorKind::InvalidData,
-                        errmsg,
-                    ));
+                        Err(Error::new(ErrorKind::InvalidData, errmsg))
                     }
                     Err(CliError::Io(err)) => {
                         let errmsg = wout!("{}", err);
-                        return Err(Error::new(
-                        ErrorKind::InvalidData,
-                        errmsg,
-                    ));
+                        Err(Error::new(ErrorKind::InvalidData, errmsg))
                     }
                     Err(CliError::Other(msg)) => {
-                       let errmsg = wout!("{}", msg);
-                        return Err(Error::new(
-                        ErrorKind::InvalidData,
-                        errmsg,
-                    ));
+                        let errmsg = wout!("{}", msg);
+                        Err(Error::new(ErrorKind::InvalidData, errmsg))
                     }
-                };
+                }
             }
         }
-        Ok(())
     }
 }
 
@@ -246,6 +226,7 @@ enum Command {
     Sort,
     Split,
     Stats,
+    MultiJoin,
     // Table,
 }
 
@@ -287,6 +268,7 @@ impl Command {
             Command::Sort => cmd::sort::run(argv, ioobj),
             Command::Split => cmd::split::run(argv, ioobj),
             Command::Stats => cmd::stats::run(argv, ioobj),
+            Command::MultiJoin => cmd::multijoin::run(argv, ioobj),
             // Command::Table => cmd::table::run(argv, ioobj),
         }
     }
@@ -355,11 +337,12 @@ impl From<regex::Error> for CliError {
     }
 }
 
-
 pub trait SeekRead: io::Seek + io::Read {}
 impl<T: io::Seek + io::Read> SeekRead for T {}
 pub trait IoRedef {
-    fn io_reader(&self, path: Option<PathBuf>) -> io::Result<Box<io::Read>>;
-    fn io_writer(&self, path: Option<PathBuf>) -> io::Result<Box<io::Write>>;
+    fn io_reader(&self, path: Option<PathBuf>) -> io::Result<Box<dyn io::Read>>;
+    fn io_writer(&self, path: Option<PathBuf>) -> io::Result<Box<dyn io::Write>>;
     fn read_from_file(&self, path: Option<PathBuf>) -> io::Result<Box<dyn SeekRead>>;
+    fn io_tmp_writer(&self, path: Option<PathBuf>) -> io::Result<(String, Box<dyn io::Write>)>;
+    fn remove_tmp_file(&self, path: String) -> io::Result<()>;
 }

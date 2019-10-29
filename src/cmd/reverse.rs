@@ -3,7 +3,6 @@ use std::prelude::v1::*;
 use util;
 use CliResult;
 
-
 static USAGE: &'static str = "
 Reverses rows of CSV data.
 

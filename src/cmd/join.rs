@@ -280,7 +280,7 @@ impl Args {
     fn new_io_state<T: IoRedef + Clone>(
         &self,
         ioop: T,
-    ) -> CliResult<IoState<Box<dyn SeekRead>, Box<io::Write>>> {
+    ) -> CliResult<IoState<Box<dyn SeekRead>, Box<dyn io::Write>>> {
         let rconf1 = Config::new(&Some(self.arg_input1.clone()), ioop.clone())
             .delimiter(self.flag_delimiter)
             .no_headers(self.flag_no_headers)
@@ -327,15 +327,15 @@ impl Args {
     }
 }
 
-struct ValueIndex<R> {
+pub struct ValueIndex<R> {
     // This maps tuples of values to corresponding rows.
-    values: HashMap<Vec<ByteString>, Vec<usize>>,
-    idx: Indexed<R, io::Cursor<Vec<u8>>>,
+    pub values: HashMap<Vec<ByteString>, Vec<usize>>,
+    pub idx: Indexed<R, io::Cursor<Vec<u8>>>,
     num_rows: usize,
 }
 
 impl<R: io::Read + io::Seek> ValueIndex<R> {
-    fn new(
+    pub fn new(
         mut rdr: csv::Reader<R>,
         sel: &Selection,
         casei: bool,
@@ -413,11 +413,11 @@ impl<R> fmt::Debug for ValueIndex<R> {
     }
 }
 
-fn get_row_key(sel: &Selection, row: &csv::ByteRecord, casei: bool) -> Vec<ByteString> {
+pub fn get_row_key(sel: &Selection, row: &csv::ByteRecord, casei: bool) -> Vec<ByteString> {
     sel.select(row).map(|v| transform(&v, casei)).collect()
 }
 
-fn transform(bs: &[u8], casei: bool) -> ByteString {
+pub fn transform(bs: &[u8], casei: bool) -> ByteString {
     match str::from_utf8(bs) {
         Err(_) => bs.to_vec(),
         Ok(s) => {

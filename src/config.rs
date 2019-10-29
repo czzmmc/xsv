@@ -2,9 +2,7 @@ use csv;
 use index::Indexed;
 use select::{SelectColumns, Selection};
 use serde::de::{Deserialize, Deserializer, Error};
-use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::env;
 use std::format;
 #[cfg(not(feature = "mesalock_sgx"))]
 use std::fs;
@@ -77,7 +75,7 @@ pub struct Config<T: IoRedef + Clone> {
     double_quote: bool,
     escape: Option<u8>,
     quoting: bool,
-  pub  ioop: T,
+    pub ioop: T,
 }
 
 impl<T: IoRedef + Clone> Config<T> {
@@ -119,7 +117,7 @@ impl<T: IoRedef + Clone> Config<T> {
         self
     }
 
-    pub fn no_headers(mut self, mut yes: bool) -> Config<T> {
+    pub fn no_headers(mut self, yes: bool) -> Config<T> {
         // if env::var("XSV_TOGGLE_HEADERS").unwrap_or("0".to_owned()) == "1" {
         //     yes = !yes;
         // }
@@ -203,11 +201,11 @@ impl<T: IoRedef + Clone> Config<T> {
         Ok(())
     }
 
-    pub fn writer(&self) -> io::Result<csv::Writer<Box<io::Write>>> {
+    pub fn writer(&self) -> io::Result<csv::Writer<Box<dyn io::Write>>> {
         Ok(self.from_writer(self.io_writer()?))
     }
 
-    pub fn reader(&self) -> io::Result<csv::Reader<Box<io::Read>>> {
+    pub fn reader(&self) -> io::Result<csv::Reader<Box<dyn io::Read>>> {
         Ok(self.from_reader(self.io_reader()?))
     }
 
@@ -217,7 +215,10 @@ impl<T: IoRedef + Clone> Config<T> {
                 io::ErrorKind::Other,
                 "Cannot use <stdin> here",
             )),
-            Some(ref p) =>self.ioop.read_from_file(Some((*p).clone())).map(|f| self.from_reader(f)),
+            Some(ref p) => self
+                .ioop
+                .read_from_file(Some((*p).clone()))
+                .map(|f| self.from_reader(f)),
         }
     }
 
@@ -231,8 +232,9 @@ impl<T: IoRedef + Clone> Config<T> {
     //     }
     // }
 
-    pub fn index_files(&self) -> io::Result<Option<(csv::Reader<Box<dyn SeekRead>>, Box<dyn SeekRead>)>> {
-      
+    pub fn index_files(
+        &self,
+    ) -> io::Result<Option<(csv::Reader<Box<dyn SeekRead>>, Box<dyn SeekRead>)>> {
         let (csv_file, idx_file) = match (&self.path, &self.idx_path) {
             (&None, &None) => return Ok(None),
             (&None, &Some(_)) => {
@@ -240,12 +242,12 @@ impl<T: IoRedef + Clone> Config<T> {
                     io::ErrorKind::Other,
                     "Cannot use <stdin> with indexes",
                     // Some(format!("index file: {}", p.display()))
-                ))
+                ));
             }
             (&Some(ref p), &None) => {
                 // We generally don't want to report an error here, since we're
                 // passively trying to find an index.
-                
+
                 let idx_file = match self.ioop.read_from_file(Some(util::idx_path(p))) {
                     // TODO: Maybe we should report an error if the file exists
                     // but is not readable.
@@ -254,7 +256,10 @@ impl<T: IoRedef + Clone> Config<T> {
                 };
                 (self.ioop.read_from_file(Some((*p).clone()))?, idx_file)
             }
-            (&Some(ref p), &Some(ref ip)) => (self.ioop.read_from_file(Some((*p).clone()))?, self.ioop.read_from_file(Some((*ip).clone()))?),
+            (&Some(ref p), &Some(ref ip)) => (
+                self.ioop.read_from_file(Some((*p).clone()))?,
+                self.ioop.read_from_file(Some((*ip).clone()))?,
+            ),
         };
         // If the CSV data was last modified after the index file was last
         // modified, then return an error and demand the user regenerate the
@@ -272,14 +277,17 @@ impl<T: IoRedef + Clone> Config<T> {
         Ok(Some((csv_rdr, idx_file)))
     }
 
-    pub fn indexed(&self) -> CliResult<Option<Indexed<std::boxed::Box<dyn SeekRead>, std::boxed::Box<dyn SeekRead>>>> {
+    pub fn indexed(
+        &self,
+    ) -> CliResult<Option<Indexed<std::boxed::Box<dyn SeekRead>, std::boxed::Box<dyn SeekRead>>>>
+    {
         match self.index_files()? {
             None => Ok(None),
             Some((r, i)) => Ok(Some(Indexed::open(r, i)?)),
         }
     }
 
-    pub fn io_reader(&self) -> io::Result<Box<io::Read>> {
+    pub fn io_reader(&self) -> io::Result<Box<dyn io::Read>> {
         // Ok(match self.path {
         //         None => Box::new(io::stdin()),
         //         Some(ref p) => {
@@ -310,15 +318,23 @@ impl<T: IoRedef + Clone> Config<T> {
             .escape(self.escape)
             .from_reader(rdr)
     }
-
-    pub fn io_writer(&self) -> io::Result<Box<io::Write>> {
+    pub fn io_tmp_writer(&self) -> io::Result<(String, Box<dyn io::Write>)> {
+        self.ioop.io_tmp_writer(self.path.clone())
+    }
+    pub fn io_writer(&self) -> io::Result<Box<dyn io::Write>> {
         // Ok(match self.path {
         //     None => Box::new(io::stdout()),
         //     Some(ref p) => Box::new(fs::File::create(p)?),
         // })
         self.ioop.io_writer(self.path.clone())
     }
-
+    pub fn tmp_writer(&self) -> io::Result<(String, csv::Writer<Box<dyn io::Write>>)> {
+        let m = self.io_tmp_writer()?;
+        Ok((m.0, self.from_writer(m.1)))
+    }
+    pub fn remove_tmp_file(&self, path: String) -> io::Result<()> {
+        self.ioop.remove_tmp_file(path)
+    }
     pub fn from_writer<W: io::Write>(&self, wtr: W) -> csv::Writer<W> {
         csv::WriterBuilder::new()
             .flexible(self.flexible)

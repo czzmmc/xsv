@@ -55,16 +55,15 @@ pub fn run<T: IoRedef + Clone>(argv: &[&str], ioobj: T) -> CliResult<()> {
         let mut rdr = conf.reader()?;
         for header in rdr.byte_headers()?.iter() {
             if !args.flag_intersect || !headers.iter().any(|h| &**h == header) {
-                    headers.push(header.to_vec());
-
+                headers.push(header.to_vec());
             }
         }
     }
-    let mut wtr: Box<io::Write> = Config::new(&args.flag_output, ioobj.clone()).io_writer()?;
+    let mut wtr: Box<dyn io::Write> = Config::new(&args.flag_output, ioobj.clone()).io_writer()?;
 
     for (i, header) in headers.into_iter().enumerate() {
         if num_inputs == 1 && !args.flag_just_names {
-            write!(&mut wtr, "{}\t", i+1)?;
+            write!(&mut wtr, "{}\t", i + 1)?;
         }
         wtr.write_all(&header)?;
         wtr.write_all(b"\n")?;

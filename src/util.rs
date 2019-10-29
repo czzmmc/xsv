@@ -1,3 +1,5 @@
+use csv;
+use docopt::Docopt;
 use std::borrow::Cow;
 #[cfg(not(feature = "mesalock_sgx"))]
 use std::fs;
@@ -8,11 +10,6 @@ use std::thread;
 #[cfg(feature = "mesalock_sgx")]
 use std::untrusted::fs;
 use std::{format, str};
-
-use std::time;
-
-use csv;
-use docopt::Docopt;
 // use num_cpus;
 use config::{Config, Delimiter};
 use serde::de::{Deserialize, DeserializeOwned, Deserializer, Error};
@@ -23,7 +20,6 @@ use IoRedef;
 //     num_cpus::get()
 // }
 
-use docopt::parse::Parser;
 pub fn version() -> String {
     // let (maj, min, pat) = (
     //     option_env!("CARGO_PKG_VERSION_MAJOR"),
@@ -37,7 +33,7 @@ pub fn version() -> String {
     // }
     "".to_owned()
 }
-use std::ops::Deref;
+
 pub fn get_args<T>(usage: &str, argv: &[&str]) -> CliResult<T>
 where
     T: DeserializeOwned,
@@ -216,7 +212,7 @@ impl FilenameTemplate {
         path: P,
         unique_value: &str,
         ioobj: T,
-    ) -> io::Result<csv::Writer<Box<io::Write>>>
+    ) -> io::Result<csv::Writer<Box<dyn io::Write>>>
     where
         P: AsRef<Path>,
         T: IoRedef + Clone,

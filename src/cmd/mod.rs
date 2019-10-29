@@ -8,6 +8,7 @@ pub mod headers;
 pub mod index;
 pub mod input;
 pub mod join;
+pub mod multijoin;
 pub mod partition;
 pub mod reverse;
 pub mod sample;

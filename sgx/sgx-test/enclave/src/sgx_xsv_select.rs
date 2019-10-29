@@ -1,33 +1,35 @@
-use workdir::Workdir;
 use std::prelude::v1::*;
 use std::vec::Vec;
 
 macro_rules! select_test {
     ($name:ident, $select:expr, $select_no_headers:expr,
      $expected_headers:expr, $expected_rows:expr) => {
-       pub mod $name {
+        pub mod $name {
             use super::data;
-            use workdir::Workdir;
             use std::prelude::v1::*;
             use std::vec::Vec;
-           pub fn headers() {
+            use workdir::Workdir;
+            pub fn headers() {
                 // let funcname = stringify!($name);
-                let wrk = Workdir::new("select",&format!("{}_headers",stringify!($name)));
-                wrk.create(&format!("{}_headers_data.csv",stringify!($name)), data(true));
+                let wrk = Workdir::new("select", &format!("{}_headers", stringify!($name)));
+                wrk.create(
+                    &format!("{}_headers_data.csv", stringify!($name)),
+                    data(true),
+                );
                 let dir = wrk.result_dir();
                 let mut cmd = wrk.command("select");
-                let outpath = format!("{}/test-result-{}_headers",dir,stringify!($name));
+                let outpath = format!("{}/test-result-{}_headers", dir, stringify!($name));
                 cmd.push("-o");
                 cmd.push(&outpath);
                 cmd.push("--");
                 cmd.push($select);
-                let input = &format!("{}/{}_headers_data.csv",dir,stringify!($name));
+                let input = &format!("{}/{}_headers_data.csv", dir, stringify!($name));
                 cmd.push(input);
 
-                let mut got: Vec<Vec<String>>=Vec::new();
-                if wrk.run(cmd){
+                let mut got: Vec<Vec<String>> = Vec::new();
+                if wrk.run(cmd) {
                     got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]))
-                }else{
+                } else {
                     panic!("run error!");
                 }
                 // let got: Vec<Vec<String>> = wrk.read_stdout(&mut cmd);
@@ -45,25 +47,27 @@ macro_rules! select_test {
                 assert_eq!(got, expected);
             }
 
-
             pub fn no_headers() {
-                let wrk = Workdir::new("select",&format!("{}_no_headers",stringify!($name)));
-                wrk.create(&format!("{}_no_headers_data.csv",stringify!($name)), data(false));
+                let wrk = Workdir::new("select", &format!("{}_no_headers", stringify!($name)));
+                wrk.create(
+                    &format!("{}_no_headers_data.csv", stringify!($name)),
+                    data(false),
+                );
                 let mut cmd = wrk.command("select");
                 let dir = wrk.result_dir();
-                let outpath = format!("{}/test-result-{}_no_headers",dir,stringify!($name));
+                let outpath = format!("{}/test-result-{}_no_headers", dir, stringify!($name));
                 cmd.push("--no-headers");
                 cmd.push("-o");
                 cmd.push(&outpath);
                 cmd.push("--");
                 cmd.push($select_no_headers);
-                let input = &format!("{}/{}_no_headers_data.csv",dir,stringify!($name));
+                let input = &format!("{}/{}_no_headers_data.csv", dir, stringify!($name));
                 cmd.push(input);
-           
-                let mut got: Vec<Vec<String>>=Vec::new();
-                if wrk.run(cmd){
+
+                let mut got: Vec<Vec<String>> = Vec::new();
+                if wrk.run(cmd) {
                     got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]))
-                }else{
+                } else {
                     panic!("run error!");
                 }
                 // let got: Vec<Vec<String>> = wrk.read_stdout(&mut cmd);
@@ -82,12 +86,12 @@ macro_rules! select_test_err {
     ($name:ident, $select:expr) => {
         #[test]
         fn $name() {
-            let wrk = Workdir::new("select",stringify!($name));
-            wrk.create(format!("{}_data.csv",stringify!($name), data(true)));
+            let wrk = Workdir::new("select", stringify!($name));
+            wrk.create(format!("{}_data.csv", stringify!($name), data(true)));
             let mut cmd = wrk.command("select");
             let dir = wrk.result_dir();
             cmd.push(&$select);
-            cmd.push(&format!("{}/{}_data.csv",dir,stringify!($name)));
+            cmd.push(&format!("{}/{}_data.csv", dir, stringify!($name)));
             wrk.assert_err(&mut cmd);
         }
     };

@@ -85,7 +85,7 @@ impl Args {
             while rdr.read_byte_record(&mut row)? {
                 wtr.write_byte_record(&row)?;
             }
-        }  
+        }
         wtr.flush().map_err(From::from)
     }
 

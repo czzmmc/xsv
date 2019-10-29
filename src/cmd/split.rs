@@ -1,16 +1,12 @@
+use std::boxed::Box;
 #[cfg(not(feature = "mesalock_sgx"))]
 use std::fs;
-use std::prelude::v1::*;
-#[cfg(feature = "mesalock_sgx")]
-use std::untrusted::fs;
-
-#[cfg(feature = "mesalock_sgx")]
-use std::untrusted::path::PathEx;
-
-use std::boxed::Box;
 use std::io;
 use std::path::Path;
+use std::prelude::v1::*;
 use std::string::String;
+#[cfg(feature = "mesalock_sgx")]
+use std::untrusted::fs;
 use std::{format, str};
 // use channel;
 use csv;
@@ -140,7 +136,7 @@ impl Args {
         headers: &csv::ByteRecord,
         start: usize,
         ioobj: T,
-    ) -> CliResult<csv::Writer<Box<io::Write>>> {
+    ) -> CliResult<csv::Writer<Box<dyn io::Write>>> {
         let dir = Path::new(&self.arg_outdir);
         let path = dir.join(self.flag_filename.filename(&format!("{}", start)));
         let spath = Some(path.display().to_string());

@@ -6,9 +6,9 @@ use std::untrusted::fs;
 
 use config::{Config, Delimiter};
 use index::Indexed;
+use std::io;
 use util;
 use CliResult;
-use std::io;
 
 static USAGE: &'static str = "
 Returns the rows in the range specified (starting at 0, half-open interval).
@@ -69,7 +69,8 @@ impl Args {
     fn no_index<T: IoRedef + Clone>(&self, ioop: T) -> CliResult<()> {
         let mut rdr = self.rconfig(ioop.clone()).reader()?;
         let mut wtr = self.wconfig(ioop.clone()).writer()?;
-        self.rconfig(ioop.clone()).write_headers(&mut rdr, &mut wtr)?;
+        self.rconfig(ioop.clone())
+            .write_headers(&mut rdr, &mut wtr)?;
 
         let (start, end) = self.range()?;
         for r in rdr.byte_records().skip(start).take(end - start) {
@@ -78,13 +79,14 @@ impl Args {
         Ok(wtr.flush()?)
     }
 
-    fn with_index<T: IoRedef + Clone,U:io::Seek + io::Read>(
+    fn with_index<T: IoRedef + Clone, U: io::Seek + io::Read>(
         &self,
-        mut idx: Indexed<U,U>,
+        mut idx: Indexed<U, U>,
         ioop: T,
     ) -> CliResult<()> {
         let mut wtr = self.wconfig(ioop.clone()).writer()?;
-        self.rconfig(ioop.clone()).write_headers(&mut *idx, &mut wtr)?;
+        self.rconfig(ioop.clone())
+            .write_headers(&mut *idx, &mut wtr)?;
 
         let (start, end) = self.range()?;
         if end - start == 0 {

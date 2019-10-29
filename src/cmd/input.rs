@@ -5,7 +5,6 @@ use config::{Config, Delimiter};
 use util;
 use CliResult;
 
-
 static USAGE: &'static str = "
 Read CSV data with special quoting rules.
 

@@ -1,7 +1,7 @@
+use config::{Config, Delimiter};
+use csv;
 use std::cmp;
 use std::prelude::v1::*;
-use csv;
-use config::{Config, Delimiter};
 use util;
 use CliResult;
 

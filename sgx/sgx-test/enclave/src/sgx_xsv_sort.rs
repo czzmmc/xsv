@@ -3,25 +3,23 @@ use std::prelude::v1::*;
 use std::vec::Vec;
 use workdir::Workdir;
 
-
 fn prop_sort(name: &str, rows: Vec<Vec<String>>, headers: bool) -> bool {
-    let wrk = Workdir::new("sort",name);
-    wrk.create(&format!("{}_in.csv",name), rows.clone());
+    let wrk = Workdir::new("sort", name);
+    wrk.create(&format!("{}_in.csv", name), rows.clone());
     let dir = wrk.result_dir();
-    let mut cmd = wrk.command("sort");
-    let outpath = format!("{}/test-result-{}",dir,name);
+    let outpath = format!("{}/test-result-{}", dir, name);
     let mut cmd = wrk.command("sort");
     cmd.push("-o");
     cmd.push(&outpath);
-    let input = &format!("{}/{}_in.csv",dir,name);
+    let input = &format!("{}/{}_in.csv", dir, name);
     cmd.push(input);
     if !headers {
         cmd.push("--no-headers");
     }
-    let mut got: Vec<Vec<String>>=Vec::new();
-    if wrk.run(cmd){
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run(cmd) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]));
-    }else{
+    } else {
         panic!("run error!");
     }
     let mut expected = rows.clone();
@@ -37,50 +35,44 @@ fn prop_sort(name: &str, rows: Vec<Vec<String>>, headers: bool) -> bool {
     rassert_eq!(got, expected)
 }
 
-
 pub fn prop_sort_headers() {
     let rows = vec![
-            svec!["N", "S"],
-            svec!["10", "a"],
-            svec!["LETTER", "b"],
-            svec!["2", "c"],
-            svec!["1", "d"],
-        ];
-        prop_sort("prop_sort_headers", rows, true);
-
-
+        svec!["N", "S"],
+        svec!["10", "a"],
+        svec!["LETTER", "b"],
+        svec!["2", "c"],
+        svec!["1", "d"],
+    ];
+    prop_sort("prop_sort_headers", rows, true);
 }
-
 
 pub fn prop_sort_no_headers() {
-      let rows = vec![
-            svec!["N", "S"],
-            svec!["10", "a"],
-            svec!["LETTER", "b"],
-            svec!["2", "c"],
-            svec!["1", "d"],
-        ];
-        prop_sort("prop_sort_no_headers", rows, false);
-  
+    let rows = vec![
+        svec!["N", "S"],
+        svec!["10", "a"],
+        svec!["LETTER", "b"],
+        svec!["2", "c"],
+        svec!["1", "d"],
+    ];
+    prop_sort("prop_sort_no_headers", rows, false);
 }
 
-
 pub fn sort_select() {
-    let wrk = Workdir::new("sort","sort_select");
+    let wrk = Workdir::new("sort", "sort_select");
     wrk.create("sort_select_in.csv", vec![svec!["1", "b"], svec!["2", "a"]]);
     let dir = wrk.result_dir();
-    let input = &format!("{}/sort_select_in.csv",dir);
-    let outpath = format!("{}/test-result-sort_select",dir);
+    let input = &format!("{}/sort_select_in.csv", dir);
+    let outpath = format!("{}/test-result-sort_select", dir);
     let mut cmd = wrk.command("sort");
     cmd.push("-o");
     cmd.push(&outpath);
     cmd.push("--no-headers");
     cmd.extend(&["--select", "2"]);
     cmd.push(input);
-    let mut got: Vec<Vec<String>>=Vec::new();
-    if wrk.run(cmd){
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run(cmd) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]));
-    }else{
+    } else {
         panic!("run error!");
     }
     let expected = vec![svec!["2", "a"], svec!["1", "b"]];
@@ -88,10 +80,10 @@ pub fn sort_select() {
 }
 
 pub fn sort_numeric() {
-    let wrk = Workdir::new("sort","sort_numeric");
+    let wrk = Workdir::new("sort", "sort_numeric");
     let dir = wrk.result_dir();
-    let input = &format!("{}/sort_numeric_in.csv",dir);
-    let outpath = format!("{}/test-result-sort_numeric",dir);
+    let input = &format!("{}/sort_numeric_in.csv", dir);
+    let outpath = format!("{}/test-result-sort_numeric", dir);
 
     wrk.create(
         "sort_numeric_in.csv",
@@ -109,10 +101,10 @@ pub fn sort_numeric() {
     cmd.push(&outpath);
     cmd.push("-N");
     cmd.push(input);
-    let mut got: Vec<Vec<String>>=Vec::new();
-    if wrk.run(cmd){
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run(cmd) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]));
-    }else{
+    } else {
         panic!("run error!");
     }
     let expected = vec![
@@ -127,10 +119,10 @@ pub fn sort_numeric() {
 }
 
 pub fn sort_numeric_non_natural() {
-    let wrk = Workdir::new("sort","sort_numeric_non_natural");
+    let wrk = Workdir::new("sort", "sort_numeric_non_natural");
     let dir = wrk.result_dir();
-    let input = &format!("{}/sort_numeric_non_natural_in.csv",dir);
-    let outpath = format!("{}/test-result-sort_numeric_non_natural",dir);
+    let input = &format!("{}/sort_numeric_non_natural_in.csv", dir);
+    let outpath = format!("{}/test-result-sort_numeric_non_natural", dir);
 
     wrk.create(
         "sort_numeric_non_natural_in.csv",
@@ -149,10 +141,10 @@ pub fn sort_numeric_non_natural() {
     cmd.push(&outpath);
     cmd.push("-N");
     cmd.push(input);
-    let mut got: Vec<Vec<String>>=Vec::new();
-    if wrk.run(cmd){
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run(cmd) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]))
-    }else{
+    } else {
         panic!("run error!");
     }
     let expected = vec![
@@ -168,10 +160,10 @@ pub fn sort_numeric_non_natural() {
 }
 
 pub fn sort_reverse() {
-    let wrk = Workdir::new("sort","sort_reverse");
+    let wrk = Workdir::new("sort", "sort_reverse");
     let dir = wrk.result_dir();
-    let input = &format!("{}/sort_reverse_in.csv",dir);
-    let outpath = format!("{}/test-result-sort_reverse",dir);
+    let input = &format!("{}/sort_reverse_in.csv", dir);
+    let outpath = format!("{}/test-result-sort_reverse", dir);
 
     wrk.create(
         "sort_reverse_in.csv",
@@ -185,10 +177,10 @@ pub fn sort_reverse() {
     cmd.push("--no-headers");
     cmd.push(input);
 
-    let mut got: Vec<Vec<String>>=Vec::new();
-    if wrk.run(cmd){
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run(cmd) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]));
-    }else{
+    } else {
         panic!("run error!");
     }
     let expected = vec![svec!["R", "S"], svec!["2", "a"], svec!["1", "b"]];

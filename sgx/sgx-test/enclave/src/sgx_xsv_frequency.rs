@@ -1,13 +1,13 @@
+use csv;
+use serde::Deserialize;
+use stats::Frequencies;
 use std::borrow::ToOwned;
-use std::collections::hash_map::{HashMap, Entry};
+use std::collections::hash_map::{Entry, HashMap};
 use std::prelude::v1::*;
 use std::vec;
-use csv;
-use stats::Frequencies;
-use serde::Deserialize;
 use workdir::Workdir;
 
-fn setup(name: &str,) -> (Workdir, Vec<String>) {
+fn setup(name: &str) -> (Workdir, Vec<String>) {
     let rows = vec![
         svec!["h1", "h2"],
         svec!["a", "z"],
@@ -17,27 +17,30 @@ fn setup(name: &str,) -> (Workdir, Vec<String>) {
         svec!["", "z"],
         svec!["(NULL)", "x"],
     ];
-    
-    let wrk = Workdir::new("frequency",name);
-    wrk.create(&format!("{}_in.csv",name), rows);
-    let mut cmd:Vec<String> = wrk.command("frequency").into_iter().map(|s| s.to_string()).collect();
+
+    let wrk = Workdir::new("frequency", name);
+    wrk.create(&format!("{}_in.csv", name), rows);
+    let mut cmd: Vec<String> = wrk
+        .command("frequency")
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect();
     let dir = wrk.result_dir();
-    let input = format!("{}/{}_in.csv",dir,name);
-    let outpath = format!("{}/test-result-{}",dir,name);
+    let input = format!("{}/{}_in.csv", dir, name);
+    let outpath = format!("{}/test-result-{}", dir, name);
     cmd.push(input);
     cmd.push("-o".to_string());
     cmd.push(outpath);
     (wrk, cmd)
 }
 
-
 pub fn frequency_no_headers() {
     let (wrk, mut cmd) = setup("frequency_no_headers");
-    cmd.extend(svec!["--limit", "0","--select", "1","--no-headers"]);
-    let mut got: Vec<Vec<String>> =Vec::new();
-    if wrk.run((&cmd).iter().map(|s| s.as_str()).collect()){
+    cmd.extend(svec!["--limit", "0", "--select", "1", "--no-headers"]);
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run((&cmd).iter().map(|s| s.as_str()).collect()) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]))
-    }else{
+    } else {
         panic!("run error!");
     }
     got = got.into_iter().skip(1).collect();
@@ -52,14 +55,13 @@ pub fn frequency_no_headers() {
     assert_eq!(got, expected);
 }
 
-
 pub fn frequency_no_nulls() {
     let (wrk, mut cmd) = setup("frequency_no_nulls");
-    cmd.extend(svec!["--no-nulls","--limit", "0","--select", "h1"]);
-    let mut got: Vec<Vec<String>> =Vec::new();
-    if wrk.run((&cmd).into_iter().map(|s| s.as_str()).collect()){
+    cmd.extend(svec!["--no-nulls", "--limit", "0", "--select", "h1"]);
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run((&cmd).into_iter().map(|s| s.as_str()).collect()) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]))
-    }else{
+    } else {
         panic!("run error!");
     }
     got.sort();
@@ -71,15 +73,14 @@ pub fn frequency_no_nulls() {
     ];
     assert_eq!(got, expected);
 }
-
 
 pub fn frequency_nulls() {
     let (wrk, mut cmd) = setup("frequency_nulls");
-    cmd.extend(svec!["--limit", "0","--select", "h1"]);
-    let mut got: Vec<Vec<String>> =Vec::new();
-    if wrk.run((&cmd).into_iter().map(|s| s.as_str()).collect()){
+    cmd.extend(svec!["--limit", "0", "--select", "h1"]);
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run((&cmd).into_iter().map(|s| s.as_str()).collect()) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]))
-    }else{
+    } else {
         panic!("run error!");
     }
     got.sort();
@@ -92,15 +93,14 @@ pub fn frequency_nulls() {
     ];
     assert_eq!(got, expected);
 }
-
 
 pub fn frequency_limit() {
     let (wrk, mut cmd) = setup("frequency_limit");
     cmd.extend(svec!["--limit", "1"]);
-    let mut got: Vec<Vec<String>> =Vec::new();
-    if wrk.run((&cmd).into_iter().map(|s| s.as_str()).collect()){
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run((&cmd).into_iter().map(|s| s.as_str()).collect()) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]))
-    }else{
+    } else {
         panic!("run error!");
     }
     got.sort();
@@ -112,32 +112,27 @@ pub fn frequency_limit() {
     assert_eq!(got, expected);
 }
 
-
 pub fn frequency_asc() {
     let (wrk, mut cmd) = setup("frequency_asc");
-    cmd.extend(svec!["--limit", "1","--select", "h2","--asc"]);
-    let mut got: Vec<Vec<String>> =Vec::new();
-    if wrk.run((&cmd).into_iter().map(|s| s.as_str()).collect()){
+    cmd.extend(svec!["--limit", "1", "--select", "h2", "--asc"]);
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run((&cmd).into_iter().map(|s| s.as_str()).collect()) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]))
-    }else{
+    } else {
         panic!("run error!");
     }
     got.sort();
-    let expected = vec![
-        svec!["field", "value", "count"],
-        svec!["h2", "x", "1"],
-    ];
+    let expected = vec![svec!["field", "value", "count"], svec!["h2", "x", "1"]];
     assert_eq!(got, expected);
 }
 
-
 pub fn frequency_select() {
     let (wrk, mut cmd) = setup("frequency_select");
-    cmd.extend(svec!["--limit", "0","--select", "h2"]);
-    let mut got: Vec<Vec<String>> =Vec::new();
-    if wrk.run((&cmd).into_iter().map(|s| s.as_str()).collect()){
+    cmd.extend(svec!["--limit", "0", "--select", "h2"]);
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run((&cmd).into_iter().map(|s| s.as_str()).collect()) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]))
-    }else{
+    } else {
         panic!("run error!");
     }
     got.sort();
@@ -154,12 +149,15 @@ pub fn frequency_select() {
 // as the frequency table computed in memory.
 
 pub fn prop_frequency() {
-    let rows = vec![svec!["x","y","z"],svec!["x","","z"],svec!["x","m","zl"]];
-    run_frequency("frequency","prop_frequency", rows, false);
+    let rows = vec![
+        svec!["x", "y", "z"],
+        svec!["x", "", "z"],
+        svec!["x", "m", "zl"],
+    ];
+    run_frequency("frequency", "prop_frequency", rows, false);
     // Run on really small values because we are incredibly careless
     // with allocation.
 }
-
 
 // This tests that running the frequency command on a CSV file with these two
 // rows does not burst in flames:
@@ -171,48 +169,46 @@ pub fn prop_frequency() {
 // Namely, \u{FEFF} is the UTF-8 BOM, which is ignored by the underlying CSV
 // reader.
 pub fn frequency_bom() {
-    let rows = vec![vec!["\u{FEFF}".to_string()],
-            vec!["".to_string()],
-        ];
-    assert!(run_frequency("frequency","frequency_bom", rows, false))
+    let rows = vec![vec!["\u{FEFF}".to_string()], vec!["".to_string()]];
+    assert!(run_frequency("frequency", "frequency_bom", rows, false))
 }
 
 // This tests that a frequency table computed by `xsv` (with an index) is
 // always the same as the frequency table computed in memory.
 
 pub fn prop_frequency_indexed() {
-        let rows = vec![svec!["x","y","z"],svec!["x","y","z"],svec!["x","m","zl"]];
-        run_frequency("frequency","prop_frequency_indxed", rows, true);
+    let rows = vec![
+        svec!["x", "y", "z"],
+        svec!["x", "y", "z"],
+        svec!["x", "m", "zl"],
+    ];
+    run_frequency("frequency", "prop_frequency_indxed", rows, true);
 
     // Run on really small values because we are incredibly careless
     // with allocation.
 }
 
-
-fn run_frequency(test_name: &str,fun_name:&str, rows: Vec<Vec<String>>,idx:bool )-> bool
- {
-    let wrk = Workdir::new(test_name,fun_name);
+fn run_frequency(test_name: &str, fun_name: &str, rows: Vec<Vec<String>>, idx: bool) -> bool {
+    let wrk = Workdir::new(test_name, fun_name);
     if idx {
-         wrk.create_indexed(&format!("{}_in.csv",fun_name), rows.clone());
-     } else {
-         wrk.create(&format!("{}_in.csv",fun_name), rows.clone());
-     }
+        wrk.create_indexed(&format!("{}_in.csv", fun_name), rows.clone());
+    } else {
+        wrk.create(&format!("{}_in.csv", fun_name), rows.clone());
+    }
 
     let mut cmd = wrk.command("frequency");
     let dir = wrk.result_dir();
-    let path1 = &format!("{}/{}_in.csv",dir,fun_name);
-    let outpath =&format!("{}/test-result-{}",dir,fun_name);
-    cmd.extend(&[&path1,"-j", "4","--limit", "0","-o",&outpath]);
-    if wrk.run(cmd){
+    let path1 = &format!("{}/{}_in.csv", dir, fun_name);
+    let outpath = &format!("{}/test-result-{}", dir, fun_name);
+    cmd.extend(&[&path1, "-j", "4", "--limit", "0", "-o", &outpath]);
+    if wrk.run(cmd) {
         let got_ftables = ftables_from_csv_path(outpath);
         let expected_ftables = ftables_from_rows(rows);
         assert_eq_ftables(&got_ftables, &expected_ftables)
-    }else{
+    } else {
         panic!("run error!");
     }
-    
 }
-
 
 type FTables = HashMap<String, Frequencies<String>>;
 
@@ -270,7 +266,9 @@ fn ftables_from_csv_path(data: &str) -> FTables {
 }
 
 fn freq_data<T>(ftable: &Frequencies<T>) -> Vec<(&T, u64)>
-        where T: ::std::hash::Hash + Ord + Clone {
+where
+    T: ::std::hash::Hash + Ord + Clone,
+{
     let mut freqs = ftable.most_frequent();
     freqs.sort();
     freqs
@@ -285,4 +283,3 @@ fn assert_eq_ftables(got: &FTables, expected: &FTables) -> bool {
     }
     true
 }
-

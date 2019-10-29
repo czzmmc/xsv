@@ -8,7 +8,6 @@ macro_rules! slice_tests {
         pub mod $name {
             use super::test_slice;
             use std::prelude::v1::*;
-            use std::vec::Vec;
             pub fn headers_no_index() {
                 let name = concat!(stringify!($name), "headers_no_index");
                 test_slice(name, $start, $end, $expected, true, false, false);
@@ -53,24 +52,28 @@ macro_rules! slice_tests {
 }
 
 fn setup(name: &str, headers: bool, use_index: bool) -> (Workdir, Vec<String>) {
-    let wrk = Workdir::new("slice",name);
+    let wrk = Workdir::new("slice", name);
     let mut data = vec![svec!["a"], svec!["b"], svec!["c"], svec!["d"], svec!["e"]];
     if headers {
         data.insert(0, svec!["header"]);
     }
 
     let dir = wrk.result_dir();
-    let input = format!("{}/{}_in.csv",dir,name);
+    let input = format!("{}/{}_in.csv", dir, name);
 
-    let outpath = format!("{}/test-result-{}",dir,name);
+    let outpath = format!("{}/test-result-{}", dir, name);
 
     if use_index {
-        wrk.create_indexed(&format!("{}_in.csv",name), data);
+        wrk.create_indexed(&format!("{}_in.csv", name), data);
     } else {
-        wrk.create(&format!("{}_in.csv",name), data);
+        wrk.create(&format!("{}_in.csv", name), data);
     }
-    
-    let mut cmd:Vec<String> = wrk.command("slice").into_iter().map(|s| s.to_string()).collect();;
+
+    let mut cmd: Vec<String> = wrk
+        .command("slice")
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect();;
     cmd.push(input);
     cmd.push("-o".to_string());
     cmd.push(outpath);
@@ -104,11 +107,11 @@ fn test_slice(
     if !headers {
         cmd.push("--no-headers".to_string());
     }
-    
-    let mut got: Vec<Vec<String>>=Vec::new();
-    if wrk.run((&cmd).iter().map(|s| s.as_str()).collect()){
+
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run((&cmd).iter().map(|s| s.as_str()).collect()) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]))
-    }else{
+    } else {
         panic!("run error!");
     }
     let mut expected = expected
@@ -129,10 +132,10 @@ fn test_index(name: &str, idx: usize, expected: &str, headers: bool, use_index: 
         cmd.push("--no-headers".to_string());
     }
 
-    let mut got: Vec<Vec<String>>=Vec::new();
-    if wrk.run((&cmd).iter().map(|s| s.as_str()).collect()){
+    let mut got: Vec<Vec<String>> = Vec::new();
+    if wrk.run((&cmd).iter().map(|s| s.as_str()).collect()) {
         got.extend(wrk.read_from_file(false).unwrap_or(vec![vec![]]))
-    }else{
+    } else {
         panic!("run error!");
     }
     let mut expected = vec![vec![expected.to_owned()]];
@@ -147,7 +150,6 @@ slice_tests!(slice_simple_2, Some(1), Some(3), &["b", "c"]);
 slice_tests!(slice_no_start, None, Some(1), &["a"]);
 slice_tests!(slice_no_end, Some(3), None, &["d", "e"]);
 slice_tests!(slice_all, None, None, &["a", "b", "c", "d", "e"]);
-
 
 pub fn slice_index() {
     test_index("slice_index", 1, "b", true, false);

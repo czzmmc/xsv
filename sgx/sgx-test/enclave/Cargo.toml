@@ -19,3 +19,4 @@ streaming-stats ={git="https://github.com/GeminiCarrie/rust-stats",tag="sgx_v1.0
 sgx_types = { rev = "v1.0.9", git = "https://github.com/baidu/rust-sgx-sdk.git"}
 sgx_tstd = { rev = "v1.0.9", git = "https://github.com/baidu/rust-sgx-sdk.git"}
 sgx_tunittest = { rev = "v1.0.9", git = "https://github.com/baidu/rust-sgx-sdk.git"}
+uuid         = { git = "https://github.com/mesalock-linux/uuid-sgx",features = ["v4"]  }
