@@ -125,13 +125,13 @@ pub fn test_multijoin() {
             "multijoin",
             "--no-case",
             "--ascended",
-            "--unique",
+            "-N",
             "-o",
-            "my_mutil_two_places.csv",
+            "my_mutil_num_sorted_sample.txt",
             "1",
-            "join_inner_places.csv",
+            "n_sorted_sample.txt",
             "1",
-            "join_inner_places.csv",
+            "n_sorted_sample.txt",
         ],
         &tt
     )

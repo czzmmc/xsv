@@ -1,13 +1,13 @@
 // use std::fmt;
+use crate::cmd::sort::{iter_cmp, iter_cmp_num};
+use csv;
+use std::cmp;
 #[cfg(not(feature = "mesalock_sgx"))]
 use std::fs;
-use std::prelude::v1::*;
-
 use std::io;
 use std::iter::Extend;
+use std::prelude::v1::*;
 use std::str;
-
-use csv;
 
 use crate::cmd::join::get_row_key;
 use config::{Config, Delimiter};
@@ -47,6 +47,8 @@ multijoin options:
                            in ascending order,the flag can make it fast.
     --descended            If the tables have been sorted by the selected column
                            in descending order,the flag can make it fast.
+    -N, --numeric          Multiple tables are compared according to string numerical value.
+                           (default: according to string value)
 
 Common options:
     -h, --help             Display this message
@@ -71,6 +73,7 @@ struct OpArgs {
     flag_unique: bool,
     flag_ascended: bool,
     flag_descended: bool,
+    flag_numeric: bool,
     flag_delimiter: Option<Delimiter>,
 }
 use IoRedef;
@@ -93,6 +96,7 @@ struct IoState<W: io::Write> {
     flag_unique: bool,
     flag_ascended: bool,
     flag_descended: bool,
+    flag_numeric: bool,
     casei: bool,
     nulls: bool,
 }
@@ -137,84 +141,55 @@ impl<W: io::Write> IoState<W> {
     ) -> CliResult<()> {
         let mut pos = csv::Position::new();
         let mut first_eq_pos = csv::Position::new();
-        let mut tmp_key = Vec::new();
-
-        if flag_loop == self.rdr.len() - 1 {
-            let mut iter = self.rdr[flag_loop].byte_records();
-            let mut eq_num = 0;
-            loop {
-                // Read the position immediately before each record.
-                let next_pos = iter.reader().position().clone();
-                if let Some(row2) = iter.next() {
-                    let row2 = row2?;
-                    let tmp_key = get_row_key(&self.sel[flag_loop], &row2, self.casei);
-                    if tmp_key == key.to_vec() {
+        let mut tmp_key: Vec<ByteString> = Vec::new();
+        let count = self.rdr.len() - 1;
+        let mut iter = self.rdr[flag_loop].byte_records();
+        let mut eq_num = 0;
+        loop {
+            // Read the position immediately before each record.
+            let next_pos = self.rdr[flag_loop].position().clone();
+            if let Some(row2) = self.rdr[flag_loop].byte_records().next() {
+                let row2 = row2?;
+                let tmp_key = get_row_key(&self.sel[flag_loop], &row2, self.casei);
+                match cmp_key(&tmp_key, key, self.flag_numeric) {
+                    cmp::Ordering::Equal => {
                         if eq_num == 0 {
                             first_eq_pos = next_pos.clone();
                         }
                         eq_num += 1;
                         let mut tmp_row = row.clone();
                         tmp_row.extend(row2.iter());
-                        self.wtr.write_record(tmp_row.iter())?;
-                        if self.flag_unique {
-                            break;
+                        if flag_loop == count {
+                            self.wtr.write_record(tmp_row.iter())?;
+                        } else {
+                            self.inner_join_operator(key, &tmp_row, flag_loop + 1)?;
                         }
-                    }
-                    if self.flag_descended && tmp_key < key.to_vec() {
-                        break;
-                    }
-                    if self.flag_ascended && tmp_key > key.to_vec() {
-                        break;
-                    }
-                } else {
-                    break;
-                }
-                pos = next_pos;
-            }
-            if !self.flag_unique {
-                iter.reader_mut().seek(first_eq_pos.clone())?;
-            } else if tmp_key != key.to_vec() {
-                iter.reader_mut().seek(pos.clone())?;
-            }
-        } else {
-            let mut eq_num = 0;
-            loop {
-                // Read the position immediately before each record.
-                let next_pos = self.rdr[flag_loop].position().clone();
-                if let Some(row2) = self.rdr[flag_loop].byte_records().next() {
-                    let row2 = row2?;
-                    tmp_key = get_row_key(&self.sel[flag_loop], &row2, self.casei);
-                    if tmp_key == key.to_vec() {
-                        if eq_num == 0 {
-                            first_eq_pos = next_pos.clone();
-                        }
-                        eq_num += 1;
-                        let mut tmp_row = row.clone();
-                        tmp_row.extend(row2.iter());
-                        self.inner_join_operator(key, &tmp_row, flag_loop + 1)?;
-                        if self.flag_unique {
-                            break;
-                        }
-                    }
-                    if self.flag_descended && tmp_key < key.to_vec() {
-                        break;
-                    }
-                    if self.flag_ascended && tmp_key > key.to_vec() {
-                        break;
-                    }
-                } else {
-                    break;
-                }
-                pos = next_pos;
-            }
 
-            if !self.flag_unique {
-                self.rdr[flag_loop].seek(first_eq_pos.clone())?;
-            } else if tmp_key != key.to_vec() {
-                self.rdr[flag_loop].seek(pos.clone())?;
+                        if self.flag_unique {
+                            break;
+                        }
+                    }
+                    cmp::Ordering::Less => {
+                        if self.flag_descended {
+                            break;
+                        }
+                    }
+                    cmp::Ordering::Greater => {
+                        if self.flag_ascended {
+                            break;
+                        }
+                    }
+                }
+            } else {
+                break;
             }
+            pos = next_pos;
         }
-
+        if !self.flag_unique {
+            self.rdr[flag_loop].seek(first_eq_pos.clone())?;
+        } else if tmp_key != key.to_vec() {
+            self.rdr[flag_loop].seek(pos.clone())?;
+        }
         Ok(())
     }
 }
@@ -258,6 +233,7 @@ impl OpArgs {
             flag_unique: self.flag_unique,
             flag_ascended: self.flag_ascended,
             flag_descended: self.flag_descended,
+            flag_numeric: self.flag_numeric,
             nulls: self.flag_nulls,
         })
     }
@@ -270,5 +246,31 @@ impl OpArgs {
         let headers1 = rdr1.byte_headers()?;
         let select1 = rconf1.selection(&*headers1)?;
         Ok(select1)
+    }
+}
+
+pub fn cmp_key(key1: &[ByteString], key2: &[ByteString], flag_numeric: bool) -> cmp::Ordering {
+    if flag_numeric {
+        let k1 = key1
+            .into_iter()
+            .map(|x| x.as_slice())
+            .collect::<Vec<_>>()
+            .into_iter();
+        let k2 = key2
+            .into_iter()
+            .map(|x| x.as_slice())
+            .collect::<Vec<_>>()
+            .into_iter();
+        match iter_cmp_num(k1, k2) {
+            cmp::Ordering::Equal => return cmp::Ordering::Equal,
+            cmp::Ordering::Less => return cmp::Ordering::Less,
+            cmp::Ordering::Greater => return cmp::Ordering::Greater,
+        }
+    } else {
+        match iter_cmp(key1.iter(), key2.iter()) {
+            cmp::Ordering::Equal => return cmp::Ordering::Equal,
+            cmp::Ordering::Less => return cmp::Ordering::Less,
+            cmp::Ordering::Greater => return cmp::Ordering::Greater,
+        }
     }
 }
