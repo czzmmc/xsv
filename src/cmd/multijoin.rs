@@ -121,7 +121,7 @@ impl<W: io::Write> IoState<W> {
         while let Some(row) = self.rdr[0].byte_records().next() {
             let row = row?;
             let key = get_row_key(&self.sel[0], &row, self.casei);
-            if !self.nulls && key == [[]] {
+            if !self.nulls && key.iter().any(|f| f.is_empty()) {
                 continue;
             }
             if tmp_key == key && self.flag_unique {
@@ -143,14 +143,13 @@ impl<W: io::Write> IoState<W> {
         let mut first_eq_pos = csv::Position::new();
         let mut tmp_key: Vec<ByteString> = Vec::new();
         let count = self.rdr.len() - 1;
-        let mut iter = self.rdr[flag_loop].byte_records();
         let mut eq_num = 0;
         loop {
             // Read the position immediately before each record.
             let next_pos = self.rdr[flag_loop].position().clone();
             if let Some(row2) = self.rdr[flag_loop].byte_records().next() {
                 let row2 = row2?;
-                let tmp_key = get_row_key(&self.sel[flag_loop], &row2, self.casei);
+                tmp_key = get_row_key(&self.sel[flag_loop], &row2, self.casei);
                 match cmp_key(&tmp_key, key, self.flag_numeric) {
                     cmp::Ordering::Equal => {
                         if eq_num == 0 {
