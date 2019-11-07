@@ -82,7 +82,7 @@ struct Args {
 use IoRedef;
 pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: Args = util::get_args(USAGE, argv)?;
-    let rconfig = args.rconfig(ioobj.clone());
+    let rconfig = args.rconfig(ioobj);
 
     let mut wtr = Config::new(&args.flag_output, ioobj).writer()?;
     let (headers, tables) = args.sequential_ftables(ioobj)?;

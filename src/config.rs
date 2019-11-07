@@ -79,7 +79,7 @@ pub struct Config<'a, T: IoRedef + ?Sized> {
 }
 
 impl<'a, T: IoRedef + ?Sized> Config<'a, T> {
-    pub fn new(path: &Option<String>, ioop: &'a T) -> Config<'a, T> {
+    pub fn new(path: &Option<String>, ioobj: &'a T) -> Config<'a, T> {
         let (path, delim) = match *path {
             None => (None, b','),
             Some(ref s) if s.deref() == "-" => (None, b','),
@@ -106,7 +106,7 @@ impl<'a, T: IoRedef + ?Sized> Config<'a, T> {
             double_quote: true,
             escape: None,
             quoting: true,
-            ioop: ioop,
+            ioop: ioobj,
         }
     }
 
@@ -168,7 +168,10 @@ impl<'a, T: IoRedef + ?Sized> Config<'a, T> {
         self.quoting = yes;
         self
     }
-
+    pub fn idx_path(mut self, idx_path: String) -> Config<'a, T> {
+        self.idx_path = Some(PathBuf::from(idx_path));
+        self
+    }
     pub fn select(mut self, sel_cols: SelectColumns) -> Config<'a, T> {
         self.select_columns = Some(sel_cols);
         self

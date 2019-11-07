@@ -86,6 +86,7 @@ macro_rules! command_list {
     split       Split CSV data into many files
     stats       Compute basic statistics
     MultiJoin   Join multiple CSV files
+    Terasort    Sort large CSV data
 "
     };
 }
@@ -227,6 +228,7 @@ enum Command {
     Split,
     Stats,
     MultiJoin,
+    TeraSort,
     // Table,
 }
 
@@ -269,6 +271,7 @@ impl Command {
             Command::Split => cmd::split::run(argv, ioobj),
             Command::Stats => cmd::stats::run(argv, ioobj),
             Command::MultiJoin => cmd::multijoin::run(argv, ioobj),
+            Command::TeraSort => cmd::terasort::run(argv, ioobj),
             // Command::Table => cmd::table::run(argv, ioobj),
         }
     }

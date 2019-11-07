@@ -1,6 +1,9 @@
 // use std::fmt;
-use crate::cmd::sort::{iter_cmp, iter_cmp_num};
+
+use crate::cmd::common::{cmp_key, get_row_key};
+use config::{Config, Delimiter};
 use csv;
+use select::{SelectColumns, Selection};
 use std::cmp;
 #[cfg(not(feature = "mesalock_sgx"))]
 use std::fs;
@@ -8,10 +11,6 @@ use std::io;
 use std::iter::Extend;
 use std::prelude::v1::*;
 use std::str;
-
-use crate::cmd::join::get_row_key;
-use config::{Config, Delimiter};
-use select::{SelectColumns, Selection};
 use util;
 use SeekRead;
 use {CliError, CliResult};
@@ -41,15 +40,15 @@ multijoin options:
                            Otherwise, empty fields are completely ignored.
                            (In fact, any row that has an empty field in the
                            key specified is ignored.)
-    --unique               When set, the selected column key of a table must     
+    -U, --unique               When set, the selected column key of a table must     
                            be unique to identify the record in the table.
-    --ascended             If the tables have been sorted by the selected column
+    -A, --ascended             If the tables have been sorted by the selected column
                            in ascending order,the flag can make it fast.
-    --descended            If the tables have been sorted by the selected column
+    -D, --descended            If the tables have been sorted by the selected column
                            in descending order,the flag can make it fast.
-    -N, --numeric          Multiple tables are compared according to string numerical value.
-                           (default: according to string value)
-
+    -N, --numeric          Multiple tables are sorted by string numerical value of the 
+                           specified column.(default: according to string value)
+                           
 Common options:
     -h, --help             Display this message
     -o, --output <file>    Write output to <file> instead of stdout.
@@ -117,17 +116,25 @@ impl<W: io::Write> IoState<W> {
     }
 
     fn inner_join(mut self) -> CliResult<()> {
-        let mut tmp_key: Vec<ByteString> = Vec::new();
+        let mut tmp_key: Option<Vec<ByteString>>= None;
         while let Some(row) = self.rdr[0].byte_records().next() {
             let row = row?;
             let key = get_row_key(&self.sel[0], &row, self.casei);
             if !self.nulls && key.iter().any(|f| f.is_empty()) {
                 continue;
             }
-            if tmp_key == key && self.flag_unique {
+            if tmp_key == Some(key.clone()) && self.flag_unique {
                 continue;
             }
-            tmp_key = key.clone();
+            if tmp_key.is_some(){
+                match (self.flag_ascended,cmp_key(&tmp_key.unwrap(), &key, self.flag_numeric)){
+                    (true,cmp::Ordering::Greater)=>return Err(CliError::Other("Not in ascending order".to_string())),
+                    (false,cmp::Ordering::Less)=>return Err(CliError::Other("Not in descending order".to_string())),
+                    _=>{},
+                }
+            }
+
+            tmp_key = Some(key.clone());
             self.inner_join_operator(&key, &row, 1)?;
         }
         Ok(())
@@ -245,31 +252,5 @@ impl OpArgs {
         let headers1 = rdr1.byte_headers()?;
         let select1 = rconf1.selection(&*headers1)?;
         Ok(select1)
-    }
-}
-
-pub fn cmp_key(key1: &[ByteString], key2: &[ByteString], flag_numeric: bool) -> cmp::Ordering {
-    if flag_numeric {
-        let k1 = key1
-            .into_iter()
-            .map(|x| x.as_slice())
-            .collect::<Vec<_>>()
-            .into_iter();
-        let k2 = key2
-            .into_iter()
-            .map(|x| x.as_slice())
-            .collect::<Vec<_>>()
-            .into_iter();
-        match iter_cmp_num(k1, k2) {
-            cmp::Ordering::Equal => return cmp::Ordering::Equal,
-            cmp::Ordering::Less => return cmp::Ordering::Less,
-            cmp::Ordering::Greater => return cmp::Ordering::Greater,
-        }
-    } else {
-        match iter_cmp(key1.iter(), key2.iter()) {
-            cmp::Ordering::Equal => return cmp::Ordering::Equal,
-            cmp::Ordering::Less => return cmp::Ordering::Less,
-            cmp::Ordering::Greater => return cmp::Ordering::Greater,
-        }
     }
 }

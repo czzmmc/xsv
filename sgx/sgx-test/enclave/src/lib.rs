@@ -104,11 +104,11 @@ pub extern "C" fn say_something(some_string: *const u8, some_len: usize) -> sgx_
     // Ocall to normal world for output
     println!("{}", &hello_string);
     rsgx_unit_tests!(
+        workdir::test_terasort,
         workdir::test_multijoin,
         workdir::simple_test_split,
         workdir::simple_test_headers,
         workdir::simple_test_partition,
-        workdir::simple_test_join,
         sgx_xsv_cat::cat_rows_headers,
         sgx_xsv_cat::cat_cols_headers,
         sgx_xsv_cat::cat_cols_no_pad,

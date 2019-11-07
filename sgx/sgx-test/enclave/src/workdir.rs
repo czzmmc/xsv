@@ -75,31 +75,16 @@ impl IoRedef for CommonXsv {
         Ok(())
     }
 }
-pub fn simple_test_join() {
-    let tt = CommonXsv;
-    assert!(XsvMain::new(
-        vec![
-            "xsv",
-            "join",
-            "MD5",
-            "mydb.csv",
-            "MD5",
-            "mydb.csv",
-            "--no-case",
-            "-o",
-            "test_data_join2.csv"
-        ],
-        &tt
-    )
-    .is_ok())
-}
 pub fn simple_test_split() {
     let tt = CommonXsv;
-    assert!(XsvMain::new(vec!["xsv", "split", "", "mydb.csv",], &tt).is_ok())
+    match XsvMain::new(vec!["xsv", "split", "", "mydb.csv"], &tt) {
+        Ok(_) => assert!(true),
+        Err(e) => panic!("{:?}", e),
+    }
 }
 pub fn simple_test_headers() {
     let tt = CommonXsv;
-    assert!(XsvMain::new(
+    match XsvMain::new(
         vec![
             "xsv",
             "headers",
@@ -107,37 +92,61 @@ pub fn simple_test_headers() {
             "test_headers",
             "--intersect",
             "mydb.csv",
-            "mydb2.csv"
+            "mydb2.csv",
         ],
-        &tt
-    )
-    .is_ok())
+        &tt,
+    ) {
+        Ok(_) => assert!(true),
+        Err(e) => panic!("{:?}", e),
+    }
 }
 pub fn simple_test_partition() {
     let tt = CommonXsv;
-    assert!(XsvMain::new(vec!["xsv", "partition", "1", "", "mydb.csv",], &tt).is_ok())
+    match XsvMain::new(vec!["xsv", "partition", "1", "", "mydb.csv"], &tt) {
+        Ok(_) => assert!(true),
+        Err(e) => panic!("{:?}", e),
+    }
 }
 pub fn test_multijoin() {
     let tt = CommonXsv;
-    assert!(XsvMain::new(
+    match XsvMain::new(
         vec![
             "xsv",
             "multijoin",
-            "--no-case",
-            "--ascended",
-            "-N",
+            "-D",
             "-o",
-            "my_mutil_num_sorted_sample.txt",
+            "my_mutil_num_sorted_nine_cat_rows.txt",
             "1",
-            "n_sorted_sample.txt",
+            "my_mutil_sorted.csv",
             "1",
-            "n_sorted_sample.txt",
+            "my_mutil_sorted.csv",
         ],
-        &tt
-    )
-    .is_ok())
+        &tt,
+    ) {
+        Ok(_) => assert!(true),
+        Err(e) => panic!("{:?}", e),
+    }
 }
-
+pub fn test_terasort() {
+    let tt = CommonXsv;
+    match XsvMain::new(
+        vec![
+            "xsv",
+            "terasort",
+            "--nulls",
+            "-R",
+            "--splitnum",
+            "30",
+            "-o",
+            "my_mutil_sorted.csv",
+            "join_inner_places.csv",
+        ],
+        &tt,
+    ) {
+        Ok(_) => assert!(true),
+        Err(e) => panic!("{:?}", e),
+    }
+}
 impl Workdir {
     pub fn new(name: &str, funname: &str) -> Workdir {
         let mut root = PathBuf::from("/tmp");

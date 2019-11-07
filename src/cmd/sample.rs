@@ -60,7 +60,7 @@ pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
         .delimiter(args.flag_delimiter)
         .no_headers(args.flag_no_headers);
     let sample_size = args.arg_sample_size;
-
+    
     let mut wtr = Config::new(&args.flag_output, ioobj).writer()?;
     let sampled = match rconfig.indexed()? {
         Some(mut idx) => {
