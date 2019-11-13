@@ -40,11 +40,11 @@ multijoin options:
                            Otherwise, empty fields are completely ignored.
                            (In fact, any row that has an empty field in the
                            key specified is ignored.)
-    -U, --unique               When set, the selected column key of a table must     
+    -U, --unique           When set, the selected column key of a table must     
                            be unique to identify the record in the table.
-    -A, --ascended             If the tables have been sorted by the selected column
+    -A, --ascended         If the tables have been sorted by the selected column
                            in ascending order,the flag can make it fast.
-    -D, --descended            If the tables have been sorted by the selected column
+    -D, --descended        If the tables have been sorted by the selected column
                            in descending order,the flag can make it fast.
     -N, --numeric          Multiple tables are sorted by string numerical value of the 
                            specified column.(default: according to string value)

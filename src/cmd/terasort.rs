@@ -87,6 +87,7 @@ pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
             flag_nulls: args.flag_nulls,
         };
         sort_file.sort_by_key(ioobj, &mut written_header)?;
+        let _ = rconf.remove_tmp_file(input);
     }
     wtr.flush()?;
 
