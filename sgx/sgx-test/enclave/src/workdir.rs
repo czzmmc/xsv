@@ -113,7 +113,6 @@ pub fn test_multijoin() {
         vec![
             "xsv",
             "multijoin",
-            "-D",
             "-U",
             "-o",
             "my_mutil_nsorted_nine_join.txt",
@@ -142,7 +141,7 @@ pub fn test_terasort() {
             "20",
             "-o",
             "my_mutil_sorted_nine.csv",
-            "nine_cat_rows.csv",
+            "sample.csv",
         ],
         &tt,
     ) {

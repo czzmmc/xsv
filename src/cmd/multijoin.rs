@@ -31,7 +31,7 @@ Must specify exactly the same number of columns for each input.
 (See 'xsv select --help' for the full syntax.)
 
 Usage:
-    xsv multijoin (--ascended|--descended) [options] (<column> <input>) (<column> <input>)...
+    xsv multijoin [options] (<column> <input>) (<column> <input>)...
     xsv multijoin --help
 
 multijoin options:
@@ -42,10 +42,9 @@ multijoin options:
                            key specified is ignored.)
     -U, --unique           When set, the selected column key of a table must     
                            be unique to identify the record in the table.
-    -A, --ascended         If the tables have been sorted by the selected column
-                           in ascending order,the flag can make it fast.
-    -D, --descended        If the tables have been sorted by the selected column
-                           in descending order,the flag can make it fast.
+    -D, --descended        when set, the tables must have been sorted by the selected
+                           column in descending order.If it is not set, the tables must 
+                           have been sorted in ascending order.
     -N, --numeric          Multiple tables are sorted by string numerical value of the 
                            specified column.(default: according to string value)
                            
@@ -70,7 +69,6 @@ struct OpArgs {
     flag_no_case: bool,
     flag_nulls: bool,
     flag_unique: bool,
-    flag_ascended: bool,
     flag_descended: bool,
     flag_numeric: bool,
     flag_delimiter: Option<Delimiter>,
@@ -78,9 +76,6 @@ struct OpArgs {
 use IoRedef;
 pub fn run<T: IoRedef + ?Sized>(argv: &[&str], ioobj: &T) -> CliResult<()> {
     let args: OpArgs = util::get_args(USAGE, argv)?;
-    if !args.flag_descended && !args.flag_ascended || args.flag_ascended && args.flag_descended {
-        return Err(CliError::Other("Parameter error".to_string()));
-    }
     let mut state = args.new_io_state(ioobj)?;
     state.write_headers()?;
     state.inner_join()?;
@@ -93,7 +88,6 @@ struct IoState<W: io::Write> {
     sel: Vec<Selection>,
     no_headers: bool,
     flag_unique: bool,
-    flag_ascended: bool,
     flag_descended: bool,
     flag_numeric: bool,
     casei: bool,
@@ -127,7 +121,7 @@ impl<W: io::Write> IoState<W> {
                 continue;
             }
             if tmp_key.is_some(){
-                match (self.flag_ascended,cmp_key(&tmp_key.unwrap(), &key, self.flag_numeric)){
+                match (!self.flag_descended,cmp_key(&tmp_key.unwrap(), &key, self.flag_numeric)){
                     (true,cmp::Ordering::Greater)=>return Err(CliError::Other("Not in ascending order".to_string())),
                     (false,cmp::Ordering::Less)=>return Err(CliError::Other("Not in descending order".to_string())),
                     _=>{},
@@ -181,7 +175,7 @@ impl<W: io::Write> IoState<W> {
                         }
                     }
                     cmp::Ordering::Greater => {
-                        if self.flag_ascended {
+                        if !self.flag_descended {
                             break;
                         }
                     }
@@ -237,7 +231,6 @@ impl OpArgs {
             no_headers: self.flag_no_headers,
             casei: self.flag_no_case,
             flag_unique: self.flag_unique,
-            flag_ascended: self.flag_ascended,
             flag_descended: self.flag_descended,
             flag_numeric: self.flag_numeric,
             nulls: self.flag_nulls,
