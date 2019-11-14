@@ -137,6 +137,8 @@ pub fn test_terasort() {
             "terasort",
             "--nulls",
             "-R",
+            "-s",
+            "1,2",
             "--splitnum",
             "20",
             "-o",

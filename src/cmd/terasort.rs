@@ -326,7 +326,7 @@ macro_rules! sort_by {
             nulls: bool,
             reverse: bool,
         ) -> CliResult<SortValueIndex<R>> {
-            let mut val_idx: Vec<($ty, u64)> = Vec::new();
+            let mut val_idx: Vec<(Vec<$ty>, u64)> = Vec::new();
             if !rdr.has_headers() {
                 let mut pos = csv::Position::new();
                 pos.set_byte(0);
@@ -339,16 +339,19 @@ macro_rules! sort_by {
                 let row = row?;
                 let fields: Vec<_> = sel.select(&row).map(|v| v).collect();
                 if nulls || !fields.iter().any(|f| f.is_empty()) {
-                    let tmp = $trans(fields[0], casei)?;
+                    let mut tmp =Vec::new();
+                    for key in fields{
+                        tmp.push($trans(&key, casei)?);
+                    }
                     val_idx.push((tmp, row.position().unwrap().byte()));
                 }
             }
 
             // quick_sort(&mut val_idx, reverse);
             if reverse {
-                val_idx.sort_by(|r1, r2| $cmp(r2.clone(), r1.clone()));
+                val_idx.sort_by(|r1, r2| $cmp(&r2, &r1));
             } else {
-                val_idx.sort_by(|r1, r2| $cmp(r1.clone(), r2.clone()));
+                val_idx.sort_by(|r1, r2| $cmp(&r1, &r2));
             }
             let mut sorted_pos = Vec::with_capacity(val_idx.len());
             for (_, pos) in val_idx.iter() {
@@ -364,10 +367,10 @@ macro_rules! sort_by {
 sort_by!(sort_by_string, transform_string, String, compare_string);
 sort_by!(sort_by_numeric, transform_numeric, f64, compare_float);
 
-fn compare_float(f1: (f64, u64), f2: (f64, u64)) -> cmp::Ordering {
+fn compare_float(f1: &(Vec<f64>, u64), f2: &(Vec<f64>, u64)) -> cmp::Ordering {
     f1.partial_cmp(&f2).unwrap_or(cmp::Ordering::Equal)
 }
-fn compare_string(s1: (String, u64), s2: (String, u64)) -> cmp::Ordering {
+fn compare_string(s1: &(Vec<String>, u64), s2: &(Vec<String>, u64)) -> cmp::Ordering {
     s1.cmp(&s2)
 }
 pub fn quick_sort<T: PartialOrd>(s: &mut [(T, u64)], reverse: bool) {
