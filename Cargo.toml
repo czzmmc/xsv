@@ -40,7 +40,7 @@ byteorder = { git = "https://github.com/mesalock-linux/byteorder-sgx" }
 csv = { git = "https://github.com/GeminiCarrie/rust-csv.git",tag="sgx_v1.0.0"}
 csv-index = {git = "https://github.com/GeminiCarrie/rust-csv.git",tag="sgx_v1.0.0"}
 docopt = {git= "https://github.com/GeminiCarrie/docopt.rs.git",tag ="sgx_v1.1.0"}
-rand         = { git = "https://github.com/mesalock-linux/rand-sgx", tag = "v0.6.5_sgx1.0.9" }
+rand         = { git = "https://github.com/mesalock-linux/rand-sgx", tag = "v0.7.3_sgx1.1.2" }
 regex        = { git = "https://github.com/mesalock-linux/regex-sgx" }
 serde        = { git = "https://github.com/mesalock-linux/serde-sgx"}
 serde_derive = { git = "https://github.com/mesalock-linux/serde-sgx"}
